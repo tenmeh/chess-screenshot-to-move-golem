@@ -1,0 +1,31 @@
+.paste-zone {
+  border: 2px dashed #8ca2ad;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  color: #555;
+  background: #f7f9fa;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.paste-zone:hover {
+  border-color: #5a7a8a;
+}
+.paste-zone:focus {
+  border-color: #2b6cb0;
+  background: #eef5fb;
+}
+.board-preview img {
+  max-width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.fen-code {
+  font-family: monospace;
+  word-break: break-all;
+  background: #f4f4f4;
+  padding: 0.5rem;
+  border-radius: 4px;
+  display: block;
+}

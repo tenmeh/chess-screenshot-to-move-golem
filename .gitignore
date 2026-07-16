@@ -1,0 +1,18 @@
+# R
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# renv/packrat (not used, but common artifacts to keep out)
+renv/
+packrat/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code / agent tooling (not part of the project)
+.claude/
+.agents/
