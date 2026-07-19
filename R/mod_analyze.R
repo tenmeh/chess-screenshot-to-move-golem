@@ -5,8 +5,9 @@
 mod_analyze_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    p("Drop or paste a board screenshot. Works out of the box on Lichess ",
-      "(cburnett pieces); orientation is detected automatically."),
+    p("Drop or paste a board screenshot. The piece set and board orientation ",
+      "are detected automatically - download more sets in the Piece sets tab ",
+      "to cover every Lichess theme with zero calibration."),
     image_input_ui("img", ns),
     fluidRow(
       column(3, radioButtons(ns("turn"), "Side to move", c("White" = "w", "Black" = "b"))),
@@ -43,8 +44,11 @@ mod_analyze_server <- function(id, chess_ctx) {
 
     analysis <- eventReactive(input$analyze, {
       req(img())
-      lib <- load_template_library(active_templates_path())
-      recognize_position(img(), lib, chess_ctx, turn = input$turn, autocrop = input$autocrop)
+      # Reload each run: cheap (a few RDS reads), and picks up any sets the
+      # user downloaded or calibrated since the last click.
+      libs <- load_all_template_libraries()
+      recognize_position(img(), libs, chess_ctx,
+                         turn = input$turn, autocrop = input$autocrop)
     })
 
     output$recognized_preview <- renderImage(
@@ -66,7 +70,10 @@ mod_analyze_server <- function(id, chess_ctx) {
       how <- if (is.na(res$flip_detected)) "assumed" else "auto-detected"
 
       pieces <- list(
-        tags$p(sprintf("Orientation: %s on the bottom (%s).", side, how)),
+        tags$p(
+          sprintf("Piece set: %s (auto-detected). Orientation: %s on the bottom (%s).",
+                  res$set, side, how)
+        ),
         tags$code(class = "fen-code", res$fen)
       )
 

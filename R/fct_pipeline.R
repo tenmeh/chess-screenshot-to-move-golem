@@ -34,12 +34,18 @@ resolve_orientation <- function(ctx, symbols, turn, flip_hint) {
 }
 
 #' image: a magick image (the raw screenshot).
-#' Returns a list: board_img, symbols, fen, placement, flip, flip_detected, valid.
+#'
+#' `libs`: named list of template libraries to auto-detect across (default:
+#' every locally available set). Returns a list: board_img, symbols,
+#' display_symbols, fen, placement, flip, flip_detected, valid, set,
+#' set_scores.
 #' @noRd
-recognize_position <- function(image, lib, ctx, turn = "w", autocrop = TRUE) {
+recognize_position <- function(image, libs = load_all_template_libraries(),
+                               ctx, turn = "w", autocrop = TRUE) {
   board_img <- prepare_board(image, autocrop)
   squares <- split_board(board_img)
-  symbols <- recognize_symbols(squares, lib)
+  rec <- recognize_symbols_auto(squares, libs)
+  symbols <- rec$symbols
   flip_detected <- detect_flip(board_img)
   resolved <- resolve_orientation(ctx, symbols, turn, flip_detected)
 
@@ -53,6 +59,8 @@ recognize_position <- function(image, lib, ctx, turn = "w", autocrop = TRUE) {
     placement = resolved$placement,
     flip = resolved$flip,
     flip_detected = flip_detected,
-    valid = resolved$valid
+    valid = resolved$valid,
+    set = rec$set,
+    set_scores = rec$scores
   )
 }

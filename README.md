@@ -10,10 +10,20 @@ templates, reimplemented natively in R.
 screenshot -> crop into 64 squares -> recognize pieces -> FEN -> Stockfish -> best move
 ```
 
-Works out of the box on **Lichess** (cburnett piece set, bundled). Orientation
-(white/black on the bottom) is detected automatically from the coordinate
-labels, with a legality check as backstop. Other sites (Chess.com, custom
-themes) need a one-time calibration - see the **Calibrate** tab in the app.
+**Zero calibration.** The piece set is auto-detected per screenshot: cburnett
+(Lichess's default) is bundled, and one click in the *Piece sets* tab fetches
+~20 more popular Lichess sets (merida, alpha, staunty, horsey, maestro, ...)
+straight from lichess.org's public repository into your local cache. Every
+square of the screenshot is scored against every template of every installed
+set in a single matrix multiply; the best-matching set wins and classifies the
+board. Orientation (white/black on the bottom) is detected automatically from
+the coordinate labels, with a legality check as backstop.
+
+Piece art is downloaded at runtime for personal use and never redistributed
+with this package - several sets are CC BY-NC-SA or freeware, which don't mix
+with an MIT package. `piece_set_manifest()` records each set's license.
+Truly unknown sets (Chess.com themes, custom art) still have the one-shot
+manual calibration fallback.
 
 ## How it differs from the Python version
 
@@ -77,7 +87,8 @@ R/
   fct_fen.R                          # squares -> FEN, castling inference
   fct_chessjs.R                      # chess.js/V8 bridge (validity, SAN)
   fct_engine.R                       # Stockfish download + UCI
-  fct_render.R                       # draw a position from the SVG piece set
+  fct_render.R                       # draw a position from any SVG piece set
+  fct_piecesets.R                    # runtime piece-set download + manifest
   golem_utils.R                      # shared UI/reactive helpers
 inst/
   app/templates.rds                  # bundled cburnett (Lichess) templates
@@ -92,7 +103,10 @@ data-raw/build_default_templates.R   # regenerate inst/app/templates.rds
 - **Side to move** can't be read from a still image - the UI asks for it.
 - **En passant** is not inferred; **castling rights** are granted only when
   king and rook sit on their home squares.
-- A wildly wrong or illegal recognized position from a non-Lichess site means
-  you need to calibrate on that site's actual pieces (Calibrate tab).
-- Stockfish is downloaded to `tools::R_user_dir("chessvision", "cache")` on
-  first use - needs an internet connection once.
+- A wildly wrong or illegal recognized position means the screenshot's piece
+  set isn't installed - download the Lichess sets or calibrate manually
+  (Piece sets & calibration tab). Chess.com's sets are proprietary and can't
+  be auto-fetched; manual calibration covers them.
+- Stockfish and piece sets are downloaded to
+  `tools::R_user_dir("chessvision", "cache")` on first use - needs an
+  internet connection once.

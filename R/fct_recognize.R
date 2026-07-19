@@ -92,13 +92,7 @@ recognize_symbols <- function(squares, lib) {
 #' different piece set/site.
 #' @noRd
 build_from_start_position <- function(squares) {
-  start_symbols <- c(
-    "r", "n", "b", "q", "k", "b", "n", "r",
-    "p", "p", "p", "p", "p", "p", "p", "p",
-    rep(".", 8), rep(".", 8), rep(".", 8), rep(".", 8),
-    "P", "P", "P", "P", "P", "P", "P", "P",
-    "R", "N", "B", "Q", "K", "B", "N", "R"
-  )
+  start_symbols <- START_SYMBOLS
 
   piece_cores <- setNames(vector("list", length(PIECE_SYMBOLS)), PIECE_SYMBOLS)
   empty_energies <- c()
@@ -129,4 +123,88 @@ build_from_start_position <- function(squares) {
   threshold <- (hi_empty + lo_piece) / 2
 
   list(pieces = pieces, empty_threshold = threshold)
+}
+
+# ---------------------------------------------------------------------------
+# Multi-set recognition: score all 64 squares against every template of every
+# available set in a single matrix multiply, pick the best-matching set, and
+# classify with it.
+# ---------------------------------------------------------------------------
+
+#' Load every available template library. Returns a named list of libs.
+#' Includes the user's manual calibration (as "custom") when present.
+#' @noRd
+load_all_template_libraries <- function() {
+  libs <- list()
+  for (name in available_piece_sets()) {
+    path <- set_templates_path(name)
+    if (file.exists(path)) libs[[name]] <- load_template_library(path)
+  }
+  custom <- custom_templates_path()
+  if (file.exists(custom)) libs[["custom"]] <- load_template_library(custom)
+  libs
+}
+
+#' Stack the normalized templates of several libraries into one matrix.
+#' Rows are templates; attr "meta" maps each row to (set, symbol).
+#' @noRd
+template_matrix <- function(libs) {
+  rows <- list()
+  set <- character(0)
+  symbol <- character(0)
+  for (name in names(libs)) {
+    for (sym in names(libs[[name]]$norm_pieces)) {
+      rows[[length(rows) + 1]] <- libs[[name]]$norm_pieces[[sym]]
+      set <- c(set, name)
+      symbol <- c(symbol, sym)
+    }
+  }
+  m <- do.call(rbind, rows)
+  attr(m, "meta") <- data.frame(set = set, symbol = symbol,
+                                stringsAsFactors = FALSE)
+  m
+}
+
+#' Recognize 64 squares against all available sets at once.
+#'
+#' Returns list(symbols, set, scores): `symbols` from the best-matching set,
+#' `set` its name, `scores` the per-set mean match quality (for diagnostics).
+#' @noRd
+recognize_symbols_auto <- function(squares, libs = load_all_template_libraries()) {
+  if (length(libs) == 0) stop("no template libraries available")
+
+  # 64 probe vectors (normalized, transposed cores) + per-square energies.
+  cores <- lapply(squares, function(sq) sq_core(to_gray_matrix(sq)))
+  energies <- vapply(cores, sq_energy, numeric(1))
+  probes <- do.call(rbind, lapply(cores, function(cr) normalize_vec(t(cr))))
+
+  tm <- template_matrix(libs)
+  meta <- attr(tm, "meta")
+  sim <- probes %*% t(tm) # 64 x n_templates, one BLAS call
+
+  set_scores <- numeric(length(libs))
+  names(set_scores) <- names(libs)
+  set_symbols <- list()
+
+  for (name in names(libs)) {
+    cols <- which(meta$set == name)
+    sub <- sim[, cols, drop = FALSE]
+    best_idx <- max.col(sub, ties.method = "first")
+    best_sim <- sub[cbind(seq_len(64), best_idx)]
+    occupied <- energies >= libs[[name]]$empty_threshold
+
+    syms <- rep(".", 64)
+    syms[occupied] <- meta$symbol[cols][best_idx[occupied]]
+    set_symbols[[name]] <- syms
+    # Mean similarity over occupied squares; a set that can't see any pieces
+    # can't win.
+    set_scores[name] <- if (any(occupied)) mean(best_sim[occupied]) else -Inf
+  }
+
+  best_set <- names(which.max(set_scores))
+  list(
+    symbols = set_symbols[[best_set]],
+    set = best_set,
+    scores = sort(set_scores, decreasing = TRUE)
+  )
 }

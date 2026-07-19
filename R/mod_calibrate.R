@@ -5,10 +5,20 @@
 mod_calibrate_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    p("The app already ships with ", tags$strong("Lichess (cburnett)"), " templates, ",
-      "so you only need this for a different piece set (Chess.com, a custom theme, etc). ",
-      "Upload or paste a screenshot of that site's ", tags$strong("standard starting position"),
-      " to teach the recognizer its pieces."),
+    h4("Piece sets"),
+    p("Download the popular Lichess piece sets (about 1 MB total, fetched ",
+      "from lichess.org's public repository for personal use). Screenshots ",
+      "using any downloaded set are then recognized automatically - no ",
+      "calibration needed."),
+    actionButton(ns("download_sets"), "Download piece sets", class = "btn-primary"),
+    uiOutput(ns("sets_status")),
+    tags$hr(),
+    h4("Manual calibration (unknown piece sets)"),
+    p("For a piece set the app doesn't know (Chess.com themes, custom art), ",
+      "upload or paste a screenshot of that site's ",
+      tags$strong("standard starting position"),
+      " to teach the recognizer its pieces. The result joins auto-detection ",
+      "as the \"custom\" set."),
     image_input_ui("cal", ns),
     checkboxInput(ns("autocrop"), "Auto-crop to the board", value = TRUE),
     actionButton(ns("calibrate"), "Calibrate", class = "btn-primary"),
@@ -25,6 +35,36 @@ mod_calibrate_server <- function(id, chess_ctx) {
     img <- latest_image_input(input, "cal")
     status <- reactiveVal(NULL)
     preview_img <- reactiveVal(NULL)
+    sets_refresh <- reactiveVal(0)
+
+    observeEvent(input$download_sets, {
+      manifest <- piece_set_manifest()
+      withProgress(message = "Downloading piece sets", value = 0, {
+        ready <- setup_piece_sets(progress = function(name, i, n) {
+          setProgress(value = (i - 1) / n, detail = name)
+        })
+      })
+      sets_refresh(sets_refresh() + 1)
+      n_ok <- sum(ready)
+      status(tags$div(
+        class = if (n_ok > 0) "alert alert-success" else "alert alert-warning",
+        sprintf("%d/%d piece sets ready for auto-detection.", n_ok, length(ready)),
+        if (any(!ready)) sprintf(" Failed: %s.", paste(names(ready)[!ready], collapse = ", "))
+      ))
+    })
+
+    output$sets_status <- renderUI({
+      sets_refresh()
+      installed <- available_piece_sets()
+      manifest <- piece_set_manifest()
+      tags$p(
+        class = "text-muted",
+        sprintf("Installed: %s (%d of %d supported).",
+                paste(installed, collapse = ", "),
+                length(installed), nrow(manifest) + 1)
+      )
+    })
+    outputOptions(output, "sets_status", suspendWhenHidden = FALSE)
 
     observeEvent(input$calibrate, {
       req(img())
