@@ -69,6 +69,31 @@ mod_analyze_server <- function(id, chess_ctx) {
       side <- if (res$flip) "black" else "white"
       how <- if (is.na(res$flip_detected)) "assumed" else "auto-detected"
 
+      # Low match confidence => the screenshot's piece set almost certainly
+      # isn't installed (typically Chess.com or a custom theme). Say so plainly
+      # instead of presenting a guessed, probably-wrong FEN as fact.
+      if (!res$set_confident) {
+        return(tagList(
+          tags$div(
+            class = "alert alert-warning", role = "alert",
+            tags$strong("Unrecognized piece set. "),
+            "This board doesn't match any installed piece set well (closest: ",
+            sprintf("%s), so the reading below is an unreliable guess. ", res$set),
+            "This is usually a Chess.com or custom theme. To fix it: open the ",
+            tags$strong("Piece sets & calibration"), " tab and either download ",
+            "the Lichess sets, or calibrate this site once from its starting ",
+            "position."
+          ),
+          tags$p(class = "text-muted",
+                 sprintf("(best-guess set %s, match confidence low: margin %.3f, weakest square %.2f)",
+                         res$set,
+                         ifelse(is.na(res$set_margin), 0, res$set_margin),
+                         res$set_min_occ)),
+          tags$p(tags$em("Best guess FEN (likely wrong):")),
+          tags$code(class = "fen-code", res$fen)
+        ))
+      }
+
       pieces <- list(
         tags$p(
           sprintf("Piece set: %s (auto-detected). Orientation: %s on the bottom (%s).",

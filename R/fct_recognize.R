@@ -9,6 +9,12 @@ MARGIN <- 6L
 CORNER <- MARGIN + 4L # 10
 PIECE_SYMBOLS <- c("P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k")
 
+# Confidence gates for auto-detection (empirically calibrated; see
+# recognize_symbols_auto). Known sets clear both by a wide margin even after
+# jpeg/scale/blur degradation; an unknown piece set fails both.
+MARGIN_GATE <- 0.06  # winner-vs-runnerup separation (known >=0.12, unknown <0.01)
+MIN_OCC_GATE <- 0.60 # worst occupied-square match (known >=0.88, unknown <=0.40)
+
 #' @noRd
 sq_background <- function(mat) {
   n <- nrow(mat) # 64
@@ -185,6 +191,8 @@ recognize_symbols_auto <- function(squares, libs = load_all_template_libraries()
   set_scores <- numeric(length(libs))
   names(set_scores) <- names(libs)
   set_symbols <- list()
+  set_min_occ <- numeric(length(libs))
+  names(set_min_occ) <- names(libs)
 
   for (name in names(libs)) {
     cols <- which(meta$set == name)
@@ -199,12 +207,29 @@ recognize_symbols_auto <- function(squares, libs = load_all_template_libraries()
     # Mean similarity over occupied squares; a set that can't see any pieces
     # can't win.
     set_scores[name] <- if (any(occupied)) mean(best_sim[occupied]) else -Inf
+    set_min_occ[name] <- if (any(occupied)) min(best_sim[occupied]) else -Inf
   }
 
-  best_set <- names(which.max(set_scores))
+  scores <- sort(set_scores, decreasing = TRUE)
+  best_set <- names(scores)[1]
+  # Confidence signals (see data-raw notes / commit message for calibration):
+  #  - margin: how far the winning set stands out from the runner-up. When the
+  #    true set is installed one set wins decisively (>=0.12); when it isn't,
+  #    every set fits the garbage equally and margin collapses (<0.01).
+  #    Renderer-independent, but needs >=2 sets installed.
+  #  - min_occ: worst per-square match for the winning set. Known sets explain
+  #    every occupied square well (>=0.88 even degraded); an unknown set leaves
+  #    some square badly unmatched (<=0.4). Works with any number of sets.
+  margin <- if (length(scores) >= 2) scores[1] - scores[2] else NA_real_
+  min_occ <- set_min_occ[best_set]
+  confident <- (is.na(margin) || margin >= MARGIN_GATE) && (min_occ >= MIN_OCC_GATE)
+
   list(
     symbols = set_symbols[[best_set]],
     set = best_set,
-    scores = sort(set_scores, decreasing = TRUE)
+    scores = scores,
+    margin = margin,
+    min_occ = unname(min_occ),
+    confident = confident
   )
 }

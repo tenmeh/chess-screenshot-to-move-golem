@@ -103,10 +103,12 @@ data-raw/build_default_templates.R   # regenerate inst/app/templates.rds
 - **Side to move** can't be read from a still image - the UI asks for it.
 - **En passant** is not inferred; **castling rights** are granted only when
   king and rook sit on their home squares.
-- A wildly wrong or illegal recognized position means the screenshot's piece
-  set isn't installed - download the Lichess sets or calibrate manually
-  (Piece sets & calibration tab). Chess.com's sets are proprietary and can't
-  be auto-fetched; manual calibration covers them.
+- When the screenshot's piece set isn't installed, recognition **says so**
+  instead of emitting a confident wrong FEN: a low-confidence match (small
+  winner-vs-runner-up margin, or a badly-unmatched square) triggers an
+  "unrecognized piece set" warning pointing you to download the Lichess sets
+  or calibrate. Chess.com's sets are proprietary and can't be auto-fetched;
+  one-shot manual calibration covers them (and any custom theme).
 - Stockfish and piece sets are downloaded to
   `tools::R_user_dir("chessvision", "cache")` on first use - needs an
   internet connection once.

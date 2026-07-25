@@ -61,6 +61,9 @@ recognize_position <- function(image, libs = load_all_template_libraries(),
     flip_detected = flip_detected,
     valid = resolved$valid,
     set = rec$set,
-    set_scores = rec$scores
+    set_scores = rec$scores,
+    set_confident = rec$confident,
+    set_margin = rec$margin,
+    set_min_occ = rec$min_occ
   )
 }
