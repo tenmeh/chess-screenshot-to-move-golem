@@ -29,3 +29,85 @@
   border-radius: 4px;
   display: block;
 }
+
+/* ---- interactive analysis board ---- */
+.cv-board-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  max-width: 560px;
+}
+.cv-board {
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+}
+/* The arrow overlay sits on top of the board without eating drag events. */
+.cv-board .cv-arrows {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+.cv-evalbar {
+  width: 18px;
+  flex: 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #404040;
+  border-radius: 3px;
+  overflow: hidden;
+  background: #8ca2ad;
+}
+.cv-evalbar-black {
+  background: #3a3a3a;
+  height: 50%;
+  transition: height 0.25s ease;
+}
+.cv-evalbar-white {
+  background: #f2f2f2;
+  height: 50%;
+  transition: height 0.25s ease;
+}
+.cv-board-controls {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.cv-eval-headline {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.cv-line {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+}
+.cv-line-score {
+  font-weight: 600;
+  min-width: 3.6rem;
+  font-variant-numeric: tabular-nums;
+}
+.cv-line-move {
+  font-weight: 600;
+  min-width: 3.5rem;
+}
+.cv-line-pv {
+  color: #666;
+  font-family: monospace;
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+.cv-movelist {
+  font-family: monospace;
+  font-size: 0.85rem;
+  max-height: 8rem;
+  overflow-y: auto;
+  word-break: break-word;
+}

@@ -14,6 +14,6 @@
 #' @importFrom V8 v8
 #' @importFrom stats median var
 #' @importFrom tools R_user_dir
-#' @importFrom utils download.file unzip untar
+#' @importFrom utils download.file unzip untar packageVersion head
 #' @importFrom golem add_resource_path with_golem_options
 "_PACKAGE"

@@ -43,14 +43,20 @@ autocrop_board <- function(img) {
 
   xb <- bounds(col_var)
   yb <- bounds(row_var)
-  side <- max(xb[2] - xb[1], yb[2] - yb[1])
-  cx <- (xb[1] + xb[2]) %/% 2
-  cy <- (yb[1] + yb[2]) %/% 2
-  x0 <- max(1, min(cx - side %/% 2, w - side + 1))
-  y0 <- max(1, min(cy - side %/% 2, h - side + 1))
-  side <- min(side, w - x0 + 1, h - y0 + 1)
+  # These are inclusive 1-based index bounds, so a span of columns 1..400 is
+  # 400 pixels wide, not 399. Getting this wrong crops a pixel short and the
+  # 8x8 grid drifts by up to a pixel across the board - invisible on a large
+  # screenshot, but enough to misread squares below ~512px.
+  bw <- xb[2] - xb[1] + 1L
+  bh <- yb[2] - yb[1] + 1L
+  side <- min(max(bw, bh), w, h)
+  # Anchor on the detected box and grow evenly to a square, rather than
+  # rebuilding the origin from an integer-rounded centre (which reintroduced
+  # an off-by-one whenever the board sat inside a margin).
+  x0 <- max(1L, min(xb[1] - (side - bw) %/% 2L, w - side + 1L))
+  y0 <- max(1L, min(yb[1] - (side - bh) %/% 2L, h - side + 1L))
 
-  image_crop(img, geometry_area(side, side, x0 - 1, y0 - 1))
+  image_crop(img, geometry_area(side, side, x0 - 1L, y0 - 1L))
 }
 
 #' Normalize a screenshot to an exact board-sized RGB image

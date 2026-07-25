@@ -9,8 +9,10 @@ app_ui <- function(request) {
     fluidPage(
       titlePanel("Chess Screenshot -> Best Move"),
       tabsetPanel(
-        tabPanel("Analyze position", mod_analyze_ui("analyze")),
-        tabPanel("Piece sets & calibration", mod_calibrate_ui("calibrate"))
+        id = "main_tabs",
+        tabPanel("Analyze position", value = "analyze", mod_analyze_ui("analyze")),
+        tabPanel("Board", value = "board", mod_board_ui("board")),
+        tabPanel("Piece sets & calibration", value = "calibrate", mod_calibrate_ui("calibrate"))
       )
     )
   )

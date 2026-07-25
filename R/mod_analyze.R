@@ -32,10 +32,12 @@ mod_analyze_ui <- function(id) {
 #'
 #' @param id The module id.
 #' @param chess_ctx A chess.js V8 context from [new_chess_context()].
-#' @return Called for its side effects; wires up the analyze reactives.
+#' @return A reactive returning the FEN the user asked to open on the
+#'   interactive board, or `NULL` before any request.
 mod_analyze_server <- function(id, chess_ctx) {
   moduleServer(id, function(input, output, session) {
     img <- latest_image_input(input, "img")
+    to_board <- reactiveVal(NULL)
 
     output$input_preview <- renderImage(
       {
@@ -151,10 +153,20 @@ mod_analyze_server <- function(id, chess_ctx) {
       pieces <- c(pieces, list(
         tags$h4(sprintf("Best move: %s", move_label)),
         if (!is.na(eval_text)) tags$p(sprintf("Evaluation: %s", eval_text)),
-        if (!is.null(eng$ponder)) tags$p(class = "text-muted", sprintf("Likely reply: %s", eng$ponder))
+        if (!is.null(eng$ponder)) tags$p(class = "text-muted", sprintf("Likely reply: %s", eng$ponder)),
+        actionButton(session$ns("open_board"), "Open in board", class = "btn-primary")
       ))
       tagList(pieces)
     })
     outputOptions(output, "result", suspendWhenHidden = FALSE)
+
+    # Hand the recognized position to the interactive board tab.
+    observeEvent(input$open_board, {
+      res <- analysis()
+      req(!is.null(res), res$valid)
+      to_board(res$fen)
+    })
+
+    to_board
   })
 }

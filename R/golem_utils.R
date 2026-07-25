@@ -8,15 +8,52 @@ app_sys <- function(...) {
   system.file(..., package = "chessvision")
 }
 
-#' Register www/ as a resource path and add css/js includes
+#' Register static resource paths and add css/js includes
 #'
-#' @return A `tags$head` include with the stylesheet and paste script.
+#' Serves the package's own `www/` assets, plus the bundled cburnett SVGs and
+#' any downloaded piece sets so the interactive board can use them as its
+#' piece theme.
+#'
+#' @return A `tags$head` include with the stylesheets and scripts.
 golem_add_external_resources <- function() {
   add_resource_path("www", app_sys("app/www"))
+  # Piece art for the interactive board: bundled cburnett, plus the cache dir
+  # holding any sets the user downloaded.
+  add_resource_path("pieces", app_sys("svg"))
+  add_resource_path("piecesets", piece_sets_dir())
+  # The same chess.js bundle the server uses via V8, served to the browser so
+  # both sides agree on the rules.
+  add_resource_path("chessjs", app_sys("js"))
+  # Cache-bust our own assets on every package version so an upgrade can't
+  # leave a browser running last version's CSS/JS against new markup.
+  v <- paste0("?v=", utils::packageVersion("chessvision"))
   tags$head(
-    tags$link(rel = "stylesheet", type = "text/css", href = "www/styles.css"),
-    tags$script(src = "www/paste.js")
+    tags$link(rel = "stylesheet", type = "text/css", href = "www/chessboard-1.0.0.min.css"),
+    tags$link(rel = "stylesheet", type = "text/css", href = paste0("www/styles.css", v)),
+    tags$script(src = "www/chessboard-1.0.0.min.js"),
+    # chess.js is a CommonJS build; give it a module/exports shim before it
+    # loads, then hoist the constructor onto window for board.js.
+    tags$script(HTML("var module = {exports: {}}; var exports = module.exports;")),
+    tags$script(src = "chessjs/chess.js"),
+    tags$script(HTML("window.ChessCtor = module.exports.Chess;")),
+    tags$script(src = paste0("www/paste.js", v)),
+    tags$script(src = paste0("www/board.js", v))
   )
+}
+
+#' Base URL for a piece set's SVGs as served to the browser
+#'
+#' @param set A piece-set name, or "custom"/unknown for the bundled default.
+#' @return A URL prefix that [mod_board_ui()]'s piece theme appends
+#'   `{piece}.svg` to.
+piece_theme_base <- function(set = "cburnett") {
+  if (identical(set, "cburnett") || is.null(set) || is.na(set)) {
+    return("pieces")
+  }
+  if (is.null(piece_set_path(set))) {
+    return("pieces")
+  }
+  file.path("piecesets", set)
 }
 
 #' Drag-drop file input plus a clipboard-paste zone

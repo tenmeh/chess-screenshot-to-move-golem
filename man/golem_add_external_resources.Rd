@@ -2,13 +2,15 @@
 % Please edit documentation in R/golem_utils.R
 \name{golem_add_external_resources}
 \alias{golem_add_external_resources}
-\title{Register www/ as a resource path and add css/js includes}
+\title{Register static resource paths and add css/js includes}
 \usage{
 golem_add_external_resources()
 }
 \value{
-A \code{tags$head} include with the stylesheet and paste script.
+A \code{tags$head} include with the stylesheets and scripts.
 }
 \description{
-Register www/ as a resource path and add css/js includes
+Serves the package's own \verb{www/} assets, plus the bundled cburnett SVGs and
+any downloaded piece sets so the interactive board can use them as its
+piece theme.
 }

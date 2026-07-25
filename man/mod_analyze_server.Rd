@@ -12,7 +12,8 @@ mod_analyze_server(id, chess_ctx)
 \item{chess_ctx}{A chess.js V8 context from \code{\link[=new_chess_context]{new_chess_context()}}.}
 }
 \value{
-Called for its side effects; wires up the analyze reactives.
+A reactive returning the FEN the user asked to open on the
+interactive board, or \code{NULL} before any request.
 }
 \description{
 Analyze tab server
