@@ -1,13 +1,17 @@
-#' Analyze tab: drag-drop/paste a board screenshot -> best move
-#' @noRd
+# Analyze tab: drag-drop/paste a board screenshot -> best move.
 
-#' @noRd
+#' Analyze tab UI
+#'
+#' @param id The module id.
+#' @return A Shiny UI tag list for the analyze tab.
 mod_analyze_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    p("Drop or paste a board screenshot. The piece set and board orientation ",
+    p(
+      "Drop or paste a board screenshot. The piece set and board orientation ",
       "are detected automatically - download more sets in the Piece sets tab ",
-      "to cover every Lichess theme with zero calibration."),
+      "to cover every Lichess theme with zero calibration."
+    ),
     image_input_ui("img", ns),
     fluidRow(
       column(3, radioButtons(ns("turn"), "Side to move", c("White" = "w", "Black" = "b"))),
@@ -24,7 +28,11 @@ mod_analyze_ui <- function(id) {
   )
 }
 
-#' @noRd
+#' Analyze tab server
+#'
+#' @param id The module id.
+#' @param chess_ctx A chess.js V8 context from [new_chess_context()].
+#' @return Called for its side effects; wires up the analyze reactives.
 mod_analyze_server <- function(id, chess_ctx) {
   moduleServer(id, function(input, output, session) {
     img <- latest_image_input(input, "img")
@@ -48,7 +56,8 @@ mod_analyze_server <- function(id, chess_ctx) {
       # user downloaded or calibrated since the last click.
       libs <- load_all_template_libraries()
       recognize_position(img(), libs, chess_ctx,
-                         turn = input$turn, autocrop = input$autocrop)
+        turn = input$turn, autocrop = input$autocrop
+      )
     })
 
     output$recognized_preview <- renderImage(
@@ -84,11 +93,15 @@ mod_analyze_server <- function(id, chess_ctx) {
             "the Lichess sets, or calibrate this site once from its starting ",
             "position."
           ),
-          tags$p(class = "text-muted",
-                 sprintf("(best-guess set %s, match confidence low: margin %.3f, weakest square %.2f)",
-                         res$set,
-                         ifelse(is.na(res$set_margin), 0, res$set_margin),
-                         res$set_min_occ)),
+          tags$p(
+            class = "text-muted",
+            sprintf(
+              "(best-guess set %s, match confidence low: margin %.3f, weakest square %.2f)",
+              res$set,
+              ifelse(is.na(res$set_margin), 0, res$set_margin),
+              res$set_min_occ
+            )
+          ),
           tags$p(tags$em("Best guess FEN (likely wrong):")),
           tags$code(class = "fen-code", res$fen)
         ))
@@ -96,8 +109,10 @@ mod_analyze_server <- function(id, chess_ctx) {
 
       pieces <- list(
         tags$p(
-          sprintf("Piece set: %s (auto-detected). Orientation: %s on the bottom (%s).",
-                  res$set, side, how)
+          sprintf(
+            "Piece set: %s (auto-detected). Orientation: %s on the bottom (%s).",
+            res$set, side, how
+          )
         ),
         tags$code(class = "fen-code", res$fen)
       )

@@ -1,5 +1,8 @@
 #' Top-level Shiny UI
-#' @noRd
+#'
+#' @param request The Shiny request object (unused; present for the golem
+#'   bookmarking signature).
+#' @return A Shiny UI tag list.
 app_ui <- function(request) {
   tagList(
     golem_add_external_resources(),

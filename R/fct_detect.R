@@ -1,15 +1,17 @@
-#' Board detection: screenshot -> 64 square images, plus orientation
-#'
-#' Port of chessvision/detect.py. Note the local convention: gray matrices here
-#' are indexed `mat[x, y]` (x = width/column, y = height/row, both 1-based,
-#' y = 1 is the TOP of the image) - this is what magick::image_data() returns,
-#' the transpose of numpy's [row, col] convention used in the Python original.
-#' @noRd
+# Board detection: screenshot -> 64 square images, plus orientation.
+#
+# Port of chessvision/detect.py. Note the local convention: gray matrices here
+# are indexed mat[x, y] (x = width/column, y = height/row, both 1-based, y = 1
+# is the TOP of the image) - this is what magick::image_data() returns, the
+# transpose of numpy's row/column convention used in the Python original.
 
 SQUARE_PX <- 64L
 BOARD_PX <- SQUARE_PX * 8L
 
-#' @noRd
+#' Convert a magick image to a grayscale integer matrix
+#'
+#' @param img A magick image.
+#' @return An integer matrix indexed `[x, y]` (width by height), values 0-255.
 to_gray_matrix <- function(img) {
   g <- image_convert(img, colorspace = "gray")
   arr <- image_data(g, channels = "gray")
@@ -19,7 +21,9 @@ to_gray_matrix <- function(img) {
 }
 
 #' Best-effort crop to the board by trimming near-uniform margins
-#' @noRd
+#'
+#' @param img A magick image of a board, possibly with surrounding margins.
+#' @return A magick image cropped to the detected square board region.
 autocrop_board <- function(img) {
   info <- image_info(img)
   w <- info$width
@@ -49,16 +53,21 @@ autocrop_board <- function(img) {
   image_crop(img, geometry_area(side, side, x0 - 1, y0 - 1))
 }
 
-#' Normalize a screenshot to an exact BOARD_PX x BOARD_PX RGB board image
-#' @noRd
+#' Normalize a screenshot to an exact board-sized RGB image
+#'
+#' @param image A magick image of a board screenshot.
+#' @param autocrop Whether to trim near-uniform margins first.
+#' @return A magick image resized to `BOARD_PX` by `BOARD_PX`.
 prepare_board <- function(image, autocrop = TRUE) {
   img <- image_convert(image, colorspace = "sRGB")
   if (autocrop) img <- autocrop_board(img)
   image_resize(img, paste0(BOARD_PX, "x", BOARD_PX, "!"))
 }
 
-#' Split a normalized board into 64 square images (row-major, top-left first)
-#' @noRd
+#' Split a normalized board into 64 square images
+#'
+#' @param board A magick image sized `BOARD_PX` by `BOARD_PX`.
+#' @return A list of 64 magick images, row-major, top-left square first.
 split_board <- function(board) {
   squares <- vector("list", 64)
   idx <- 1L
@@ -73,13 +82,21 @@ split_board <- function(board) {
   squares
 }
 
-#' @noRd
+#' Prepare and split a screenshot into 64 square images in one step
+#'
+#' @param image A magick image of a board screenshot.
+#' @param autocrop Whether to trim near-uniform margins first.
+#' @return A list of 64 magick images, row-major, top-left square first.
 split_squares <- function(image, autocrop = TRUE) {
   split_board(prepare_board(image, autocrop))
 }
 
-#' Foreground ink in the rank-label strip of left-edge square `row` (0-indexed)
-#' @noRd
+#' Foreground ink in the rank-label strip of a left-edge square
+#'
+#' @param mat A grayscale board matrix from [to_gray_matrix()].
+#' @param row The 0-indexed board row whose left-edge label strip to measure.
+#' @return The fraction of strip pixels that differ strongly from the local
+#'   background (higher means more ink, i.e. a wider digit such as 8).
 label_ink <- function(mat, row) {
   y0 <- row * SQUARE_PX
   top_corner <- mat[1:6, (y0 + 1):(y0 + 6)]
@@ -93,11 +110,15 @@ label_ink <- function(mat, row) {
   mean(abs(strip - bg) > 65)
 }
 
-#' Detect board orientation from rank labels along the left edge.
+#' Detect board orientation from rank labels along the left edge
 #'
-#' Returns TRUE if black is on the bottom, FALSE if white is on the bottom,
-#' or NA if it can't tell confidently (no coordinate labels visible).
-#' @noRd
+#' Rank labels read 8..1 top-to-bottom for white's view and 1..8 for black's;
+#' the digit 1 carries much less ink than 8, so comparing the top and bottom
+#' label strips decides orientation.
+#'
+#' @param board_img A magick image sized `BOARD_PX` by `BOARD_PX`.
+#' @return `TRUE` if black is on the bottom, `FALSE` if white is on the bottom,
+#'   or `NA` if it cannot tell confidently (no coordinate labels visible).
 detect_flip <- function(board_img) {
   mat <- to_gray_matrix(board_img)
   top <- label_ink(mat, 0)

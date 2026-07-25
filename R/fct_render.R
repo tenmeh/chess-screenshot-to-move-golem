@@ -1,11 +1,9 @@
-#' Render a chess position using the bundled cburnett SVG piece set (magick)
-#' @noRd
+# Render a chess position from an SVG piece set using magick.
 
 LIGHT_SQ <- "#dee3e6"
 DARK_SQ <- "#8ca2ad"
 
-#' The standard starting position as a 64-symbol grid (row-major, top first).
-#' @noRd
+# The standard starting position as a 64-symbol grid (row-major, top first).
 START_SYMBOLS <- c(
   "r", "n", "b", "q", "k", "b", "n", "r",
   "p", "p", "p", "p", "p", "p", "p", "p",
@@ -14,16 +12,25 @@ START_SYMBOLS <- c(
   "R", "N", "B", "Q", "K", "B", "N", "R"
 )
 
-#' @noRd
+#' Resolve the SVG file path for a piece symbol within a set
+#'
+#' @param symbol A FEN piece letter (uppercase = white, lowercase = black).
+#' @param set_dir Directory holding the 12 piece SVGs (defaults to bundled
+#'   cburnett).
+#' @return The file path of the matching SVG (e.g. `wN.svg` for "N").
 piece_svg_path <- function(symbol, set_dir = app_sys("svg")) {
   color <- if (symbol == toupper(symbol)) "w" else "b"
   file.path(set_dir, paste0(color, toupper(symbol), ".svg"))
 }
 
-#' Render an 8x8 checkerboard with pieces placed from a symbol grid.
-#' `symbols`: 64 entries, row-major, top row first ("." for empty).
-#' `set_dir`: directory holding the 12 piece SVGs (defaults to bundled cburnett).
-#' @noRd
+#' Render an 8x8 board with pieces placed from a symbol grid
+#'
+#' @param symbols Character vector of 64 symbols, row-major, top row first,
+#'   with "." for an empty square.
+#' @param size Board side length in pixels.
+#' @param set_dir Directory holding the 12 piece SVGs (defaults to bundled
+#'   cburnett).
+#' @return A magick image of the rendered board.
 render_position <- function(symbols, size = 512L, set_dir = app_sys("svg")) {
   sq <- as.integer(size / 8)
   board <- image_blank(size, size, color = LIGHT_SQ)

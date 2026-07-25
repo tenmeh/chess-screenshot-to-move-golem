@@ -1,9 +1,8 @@
-#' Template-based piece recognition (port of chessvision/recognize.py)
-#'
-#' Each square is matched in background-subtracted form: the background is
-#' estimated from the square's own four corners, then subtracted, so board
-#' themes, last-move highlights, and coordinate labels don't throw it off.
-#' @noRd
+# Template-based piece recognition (port of chessvision/recognize.py).
+#
+# Each square is matched in background-subtracted form: the background is
+# estimated from the square's own four corners, then subtracted, so board
+# themes, last-move highlights, and coordinate labels don't throw it off.
 
 MARGIN <- 6L
 CORNER <- MARGIN + 4L # 10
@@ -12,10 +11,13 @@ PIECE_SYMBOLS <- c("P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k")
 # Confidence gates for auto-detection (empirically calibrated; see
 # recognize_symbols_auto). Known sets clear both by a wide margin even after
 # jpeg/scale/blur degradation; an unknown piece set fails both.
-MARGIN_GATE <- 0.06  # winner-vs-runnerup separation (known >=0.12, unknown <0.01)
+MARGIN_GATE <- 0.06 # winner-vs-runnerup separation (known >=0.12, unknown <0.01)
 MIN_OCC_GATE <- 0.60 # worst occupied-square match (known >=0.88, unknown <=0.40)
 
-#' @noRd
+#' Estimate a square's background level from its four corners
+#'
+#' @param mat A `SQUARE_PX` by `SQUARE_PX` grayscale square matrix.
+#' @return The median corner value (the estimated background level).
 sq_background <- function(mat) {
   n <- nrow(mat) # 64
   c <- CORNER
@@ -28,7 +30,10 @@ sq_background <- function(mat) {
   stats::median(corners)
 }
 
-#' @noRd
+#' Background-subtracted central region of a square
+#'
+#' @param mat A `SQUARE_PX` by `SQUARE_PX` grayscale square matrix.
+#' @return The inner region with the estimated background subtracted.
 sq_core <- function(mat) {
   bg <- sq_background(mat)
   resid <- mat - bg
@@ -36,18 +41,27 @@ sq_core <- function(mat) {
   resid[(MARGIN + 1):(n - MARGIN), (MARGIN + 1):(n - MARGIN)]
 }
 
-#' @noRd
+#' Mean absolute energy of a square core
+#'
+#' @param core A background-subtracted square core from [sq_core()].
+#' @return The mean absolute value (used to decide empty vs occupied).
 sq_energy <- function(core) mean(abs(core))
 
-#' @noRd
+#' Zero-mean, unit-norm flatten of a matrix
+#'
+#' @param v A numeric matrix or vector.
+#' @return A zero-mean vector scaled to unit norm (unchanged if near-constant).
 normalize_vec <- function(v) {
   v <- as.vector(v) - mean(as.vector(v))
   nrm <- sqrt(sum(v^2))
   if (nrm > 1e-6) v / nrm else v
 }
 
-#' Load the bundled (or calibrated) template library
-#' @noRd
+#' Load a template library from an RDS file
+#'
+#' @param path Path to a saved template library.
+#' @return A list with `pieces`, `norm_pieces` (normalized templates) and
+#'   `empty_threshold`.
 load_template_library <- function(path) {
   raw <- readRDS(path)
   norm_pieces <- lapply(raw$pieces, normalize_vec)
@@ -58,13 +72,20 @@ load_template_library <- function(path) {
   )
 }
 
-#' @noRd
+#' Save a template library to an RDS file
+#'
+#' @param lib A template library (as built by [build_from_start_position()]).
+#' @param path Destination path.
+#' @return Invisibly, the result of [saveRDS()].
 save_template_library <- function(lib, path) {
   saveRDS(list(pieces = lib$pieces, empty_threshold = lib$empty_threshold), path)
 }
 
-#' Classify one square (magick image) as a piece symbol or "." for empty
-#' @noRd
+#' Classify one square against a single template library
+#'
+#' @param square_img A magick image of one square.
+#' @param lib A template library from [load_template_library()].
+#' @return A FEN piece symbol, or "." for an empty square.
 classify_square <- function(square_img, lib) {
   mat <- to_gray_matrix(square_img)
   core <- sq_core(mat)
@@ -86,17 +107,20 @@ classify_square <- function(square_img, lib) {
   best_sym
 }
 
-#' Classify all 64 squares (row-major, top row first) into piece symbols
-#' @noRd
+#' Classify all 64 squares against a single template library
+#'
+#' @param squares A list of 64 magick square images, row-major, top row first.
+#' @param lib A template library from [load_template_library()].
+#' @return A character vector of 64 piece symbols ("." for empty).
 recognize_symbols <- function(squares, lib) {
   vapply(squares, classify_square, character(1), lib = lib)
 }
 
-#' Calibrate a template library from 64 squares of the standard starting
-#' position (white on bottom, row-major top-first). Used both to build the
-#' bundled default (cburnett) templates and for user calibration against a
-#' different piece set/site.
-#' @noRd
+#' Calibrate a template library from a starting-position board
+#'
+#' @param squares A list of 64 square images of the standard starting position
+#'   (white on bottom, row-major top-first).
+#' @return A template library list with `pieces` and `empty_threshold`.
 build_from_start_position <- function(squares) {
   start_symbols <- START_SYMBOLS
 
@@ -137,9 +161,10 @@ build_from_start_position <- function(squares) {
 # classify with it.
 # ---------------------------------------------------------------------------
 
-#' Load every available template library. Returns a named list of libs.
-#' Includes the user's manual calibration (as "custom") when present.
-#' @noRd
+#' Load every available template library
+#'
+#' @return A named list of template libraries, including the user's manual
+#'   calibration as "custom" when present.
 load_all_template_libraries <- function() {
   libs <- list()
   for (name in available_piece_sets()) {
@@ -151,9 +176,11 @@ load_all_template_libraries <- function() {
   libs
 }
 
-#' Stack the normalized templates of several libraries into one matrix.
-#' Rows are templates; attr "meta" maps each row to (set, symbol).
-#' @noRd
+#' Stack several libraries' normalized templates into one matrix
+#'
+#' @param libs A named list of template libraries.
+#' @return A matrix whose rows are normalized templates, with a "meta"
+#'   attribute (a data frame mapping each row to its `set` and `symbol`).
 template_matrix <- function(libs) {
   rows <- list()
   set <- character(0)
@@ -166,16 +193,25 @@ template_matrix <- function(libs) {
     }
   }
   m <- do.call(rbind, rows)
-  attr(m, "meta") <- data.frame(set = set, symbol = symbol,
-                                stringsAsFactors = FALSE)
+  attr(m, "meta") <- data.frame(
+    set = set, symbol = symbol,
+    stringsAsFactors = FALSE
+  )
   m
 }
 
-#' Recognize 64 squares against all available sets at once.
+#' Recognize 64 squares against all available sets at once
 #'
-#' Returns list(symbols, set, scores): `symbols` from the best-matching set,
-#' `set` its name, `scores` the per-set mean match quality (for diagnostics).
-#' @noRd
+#' Scores every square against every template of every installed set in a
+#' single matrix multiply, then picks the best-matching set and reports
+#' confidence signals (see the inline comments for how they are calibrated).
+#'
+#' @param squares A list of 64 magick square images, row-major, top row first.
+#' @param libs Named list of template libraries to score against (default:
+#'   every locally available set).
+#' @return A list with `symbols` (from the winning set), `set`, `scores`
+#'   (per-set mean similarity), `margin` (winner minus runner-up), `min_occ`
+#'   (worst occupied-square match) and `confident` (whether both gates pass).
 recognize_symbols_auto <- function(squares, libs = load_all_template_libraries()) {
   if (length(libs) == 0) stop("no template libraries available")
 

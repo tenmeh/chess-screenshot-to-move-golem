@@ -1,5 +1,4 @@
-#' Stockfish engine: download + UCI communication (port of chessvision/engine.py)
-#' @noRd
+# Stockfish engine: download + UCI communication (port of chessvision/engine.py).
 
 STOCKFISH_ASSETS_WINDOWS <- c(
   "https://github.com/official-stockfish/Stockfish/releases/download/sf_17/stockfish-windows-x86-64.zip",
@@ -12,14 +11,18 @@ STOCKFISH_ASSETS_MAC <- c(
   "https://github.com/official-stockfish/Stockfish/releases/download/sf_17/stockfish-macos-m1-apple-silicon.tar"
 )
 
-#' @noRd
+#' Directory where the downloaded Stockfish binary is cached
+#'
+#' @return The cache directory path (created if needed).
 stockfish_bin_dir <- function() {
   dir <- tools::R_user_dir("chessvision", "cache")
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   dir
 }
 
-#' @noRd
+#' Find a previously-downloaded Stockfish binary in the cache
+#'
+#' @return The path to the binary, or `NULL` if none is present.
 find_local_engine <- function() {
   dir <- stockfish_bin_dir()
   files <- list.files(dir, recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
@@ -29,15 +32,20 @@ find_local_engine <- function() {
   } else {
     files <- files[!grepl("\\.", basename(files))] # extension-less unix binary
   }
-  if (length(files) == 0) return(NULL)
+  if (length(files) == 0) {
+    return(NULL)
+  }
   files[1]
 }
 
-#' Return a path to a Stockfish binary, downloading it on first use.
-#' @noRd
+#' Return a path to a Stockfish binary, downloading it on first use
+#'
+#' @return The path to a usable Stockfish binary.
 ensure_stockfish <- function() {
   local <- find_local_engine()
-  if (!is.null(local)) return(local)
+  if (!is.null(local)) {
+    return(local)
+  }
 
   dir <- stockfish_bin_dir()
   sysname <- Sys.info()[["sysname"]]
@@ -76,41 +84,61 @@ ensure_stockfish <- function() {
   stop("Could not obtain a Stockfish binary. Last error: ", last_err)
 }
 
-#' @noRd
+#' Read engine output until a line starting with a given prefix appears
+#'
+#' @param p A running processx engine process.
+#' @param target Line prefix to wait for (e.g. "uciok", "bestmove").
+#' @param timeout Seconds to wait before erroring.
+#' @return The first line that starts with `target`.
 wait_for_line <- function(p, target, timeout = 10) {
   deadline <- Sys.time() + timeout
   seen <- c()
   repeat {
     if (Sys.time() > deadline) {
-      stop(sprintf("Timed out waiting for '%s' from engine. Saw: %s",
-                    target, paste(seen, collapse = " | ")))
+      stop(sprintf(
+        "Timed out waiting for '%s' from engine. Saw: %s",
+        target, paste(seen, collapse = " | ")
+      ))
     }
     p$poll_io(200)
     out <- p$read_output_lines()
     if (length(out) > 0) seen <- c(seen, out)
     hit <- out[startsWith(out, target)]
-    if (length(hit) > 0) return(hit[1])
+    if (length(hit) > 0) {
+      return(hit[1])
+    }
   }
 }
 
-#' @noRd
+#' Parse a UCI score from an engine info line
+#'
+#' @param line A UCI "info ..." line.
+#' @param current The score list to fall back to when the line has no score.
+#' @return A list with `cp` (centipawns) and `mate` (moves to mate), one of
+#'   which is `NA_integer_`.
 parse_uci_score <- function(line, current) {
   toks <- strsplit(line, "\\s+")[[1]]
   idx <- which(toks == "score")
-  if (length(idx) == 0) return(current)
+  if (length(idx) == 0) {
+    return(current)
+  }
   kind <- toks[idx + 1]
   val <- suppressWarnings(as.integer(toks[idx + 2]))
-  if (is.na(val)) return(current)
+  if (is.na(val)) {
+    return(current)
+  }
   if (kind == "cp") list(cp = val, mate = NA_integer_) else list(cp = NA_integer_, mate = val)
 }
 
-#' Ask Stockfish for the best move in a position.
+#' Ask Stockfish for the best move in a position
 #'
-#' @param fen full FEN string
-#' @param movetime_ms engine thinking time in milliseconds
-#' @return list(move, ponder, score_cp, score_mate) - move/ponder are UCI
-#'   strings (e.g. "e2e4"), score is from the side-to-move's point of view.
-#' @noRd
+#' @param fen Full FEN string of the position.
+#' @param movetime_ms Engine thinking time in milliseconds.
+#' @param engine_path Optional path to a Stockfish binary (defaults to the
+#'   cached/downloaded one via [ensure_stockfish()]).
+#' @return A list with `move` and `ponder` (UCI strings, e.g. "e2e4"),
+#'   `score_cp` (centipawns) and `score_mate` (moves to mate), from the
+#'   side-to-move's point of view.
 best_move_uci <- function(fen, movetime_ms = 1000L, engine_path = NULL) {
   if (is.null(engine_path)) engine_path <- ensure_stockfish()
   p <- processx::process$new(engine_path, stdin = "|", stdout = "|", stderr = "|")

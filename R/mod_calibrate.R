@@ -1,24 +1,30 @@
-#' Calibrate tab: teach the recognizer a different site's piece set
-#' @noRd
+# Piece sets & calibration tab: download Lichess sets, or teach a new one.
 
-#' @noRd
+#' Calibrate tab UI
+#'
+#' @param id The module id.
+#' @return A Shiny UI tag list for the piece-sets and calibration tab.
 mod_calibrate_ui <- function(id) {
   ns <- NS(id)
   tagList(
     h4("Piece sets"),
-    p("Download the popular Lichess piece sets (about 1 MB total, fetched ",
+    p(
+      "Download the popular Lichess piece sets (about 1 MB total, fetched ",
       "from lichess.org's public repository for personal use). Screenshots ",
       "using any downloaded set are then recognized automatically - no ",
-      "calibration needed."),
+      "calibration needed."
+    ),
     actionButton(ns("download_sets"), "Download piece sets", class = "btn-primary"),
     uiOutput(ns("sets_status")),
     tags$hr(),
     h4("Manual calibration (unknown piece sets)"),
-    p("For a piece set the app doesn't know (Chess.com themes, custom art), ",
+    p(
+      "For a piece set the app doesn't know (Chess.com themes, custom art), ",
       "upload or paste a screenshot of that site's ",
       tags$strong("standard starting position"),
       " to teach the recognizer its pieces. The result joins auto-detection ",
-      "as the \"custom\" set."),
+      "as the \"custom\" set."
+    ),
     image_input_ui("cal", ns),
     checkboxInput(ns("autocrop"), "Auto-crop to the board", value = TRUE),
     actionButton(ns("calibrate"), "Calibrate", class = "btn-primary"),
@@ -29,7 +35,12 @@ mod_calibrate_ui <- function(id) {
   )
 }
 
-#' @noRd
+#' Calibrate tab server
+#'
+#' @param id The module id.
+#' @param chess_ctx A chess.js V8 context from [new_chess_context()] (unused
+#'   here; accepted for a uniform module signature).
+#' @return Called for its side effects; wires up the calibration reactives.
 mod_calibrate_server <- function(id, chess_ctx) {
   moduleServer(id, function(input, output, session) {
     img <- latest_image_input(input, "cal")
@@ -59,9 +70,11 @@ mod_calibrate_server <- function(id, chess_ctx) {
       manifest <- piece_set_manifest()
       tags$p(
         class = "text-muted",
-        sprintf("Installed: %s (%d of %d supported).",
-                paste(installed, collapse = ", "),
-                length(installed), nrow(manifest) + 1)
+        sprintf(
+          "Installed: %s (%d of %d supported).",
+          paste(installed, collapse = ", "),
+          length(installed), nrow(manifest) + 1
+        )
       )
     })
     outputOptions(output, "sets_status", suspendWhenHidden = FALSE)
@@ -82,8 +95,10 @@ mod_calibrate_server <- function(id, chess_ctx) {
       preview_img(render_position(recognized, size = 320))
 
       if (n == 12) {
-        status(tags$div(class = "alert alert-success",
-          "Calibrated all 12 piece templates. You're ready to analyze positions."))
+        status(tags$div(
+          class = "alert alert-success",
+          "Calibrated all 12 piece templates. You're ready to analyze positions."
+        ))
       } else {
         missing <- setdiff(PIECE_SYMBOLS, names(lib$pieces))
         status(tags$div(class = "alert alert-warning", sprintf(

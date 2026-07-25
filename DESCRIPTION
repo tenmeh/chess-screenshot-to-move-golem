@@ -6,10 +6,10 @@ Description: A golem Shiny app that reads a chess board screenshot (drag-drop
     or clipboard paste), recognizes the position with template matching, and
     suggests the best move via a local Stockfish engine.
 License: MIT + file LICENSE
+Language: en-US
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
 Imports:
     shiny,
     golem,
@@ -17,8 +17,10 @@ Imports:
     processx,
     jsonlite,
     V8,
+    tools,
     utils,
     stats
 Suggests:
     pkgload,
     here
+Config/roxygen2/version: 8.0.0

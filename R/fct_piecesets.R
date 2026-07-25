@@ -1,20 +1,21 @@
-#' Runtime piece-set management.
-#'
-#' Piece art is fetched at runtime from the Lichess repository into the user's
-#' cache and never redistributed with this package - several sets are
-#' CC BY-NC-SA or freeware licenses that are incompatible with bundling in an
-#' MIT package, but fine for a user to download for personal use. Only
-#' cburnett (GPLv2+) ships in inst/svg as the built-in default.
-#' @noRd
+# Runtime piece-set management.
+#
+# Piece art is fetched at runtime from the Lichess repository into the user's
+# cache and never redistributed with this package - several sets are
+# CC BY-NC-SA or freeware licenses that are incompatible with bundling in an
+# MIT package, but fine for a user to download for personal use. Only cburnett
+# (GPLv2+) ships in inst/svg as the built-in default.
 
 PIECE_SET_BASE_URL <-
   "https://raw.githubusercontent.com/lichess-org/lila/master/public/piece"
 
-#' Curated piece sets: the popular Lichess sets with distinct piece glyphs.
-#' Gimmick sets (mono, disguised) are excluded - their pieces are visually
-#' ambiguous, which breaks recognition by design.
-#' License strings from lila's COPYING.md.
-#' @noRd
+#' Curated manifest of supported Lichess piece sets
+#'
+#' The popular Lichess sets with distinct piece glyphs. Gimmick sets (mono,
+#' disguised) are excluded because their pieces are visually ambiguous, which
+#' breaks recognition by design. License strings are from lila's COPYING.md.
+#'
+#' @return A data frame with `name` and `license` columns.
 piece_set_manifest <- function() {
   data.frame(
     name = c(
@@ -35,19 +36,24 @@ piece_set_manifest <- function() {
   )
 }
 
-PIECE_FILES <- c("wK", "wQ", "wR", "wB", "wN", "wP",
-                 "bK", "bQ", "bR", "bB", "bN", "bP")
+PIECE_FILES <- c(
+  "wK", "wQ", "wR", "wB", "wN", "wP",
+  "bK", "bQ", "bR", "bB", "bN", "bP"
+)
 
-#' @noRd
+#' Cache directory for downloaded piece sets
+#'
+#' @return The piece-sets cache directory path (created if needed).
 piece_sets_dir <- function() {
   dir <- file.path(tools::R_user_dir("chessvision", "cache"), "piece_sets")
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   dir
 }
 
-#' Directory holding a set's 12 SVGs: the bundled set from inst/, downloaded
-#' sets from the cache. Returns NULL if the set isn't available locally.
-#' @noRd
+#' Locate the directory holding a set's 12 SVGs
+#'
+#' @param name A piece-set name (or "cburnett" for the bundled default).
+#' @return The directory path, or `NULL` if the set isn't available locally.
 piece_set_path <- function(name) {
   if (name == "cburnett") {
     return(app_sys("svg"))
@@ -56,10 +62,14 @@ piece_set_path <- function(name) {
   if (all(file.exists(file.path(dir, paste0(PIECE_FILES, ".svg"))))) dir else NULL
 }
 
-#' Download one piece set (12 SVGs) into the cache. Validates that every SVG
-#' actually renders under magick before declaring the set usable.
-#' Returns TRUE on success.
-#' @noRd
+#' Download one piece set's 12 SVGs into the cache
+#'
+#' Validates that every SVG actually renders under magick before declaring the
+#' set usable, and removes a partial download on failure.
+#'
+#' @param name A piece-set name from [piece_set_manifest()].
+#' @param quiet Whether to suppress download progress messages.
+#' @return `TRUE` on success, `FALSE` otherwise.
 fetch_piece_set <- function(name, quiet = TRUE) {
   if (!is.null(piece_set_path(name))) {
     return(TRUE)
@@ -91,9 +101,10 @@ fetch_piece_set <- function(name, quiet = TRUE) {
   ok
 }
 
-#' Names of all sets available locally (bundled + downloaded + "custom" if the
-#' user calibrated one manually).
-#' @noRd
+#' Names of all piece sets available locally
+#'
+#' @return A character vector of set names (bundled cburnett plus any
+#'   downloaded manifest sets).
 available_piece_sets <- function() {
   sets <- "cburnett"
   for (name in piece_set_manifest()$name) {
@@ -102,8 +113,10 @@ available_piece_sets <- function() {
   sets
 }
 
-#' Path where a set's calibrated template library lives.
-#' @noRd
+#' Path where a set's calibrated template library lives
+#'
+#' @param name A piece-set name (or "cburnett" for the bundled default).
+#' @return The template-library RDS path for that set.
 set_templates_path <- function(name) {
   if (name == "cburnett") {
     return(app_sys("app", "templates.rds"))
@@ -111,10 +124,14 @@ set_templates_path <- function(name) {
   file.path(piece_sets_dir(), name, "templates.rds")
 }
 
-#' Build (and cache) the template library for a locally-available set by
-#' rendering the standard starting position with that set's own SVGs and
-#' calibrating on it - the exact pipeline used at recognition time.
-#' @noRd
+#' Build and cache a set's template library
+#'
+#' Renders the standard starting position with the set's own SVGs and
+#' calibrates on it - the exact pipeline used at recognition time.
+#'
+#' @param name A locally-available piece-set name.
+#' @param force Rebuild even if a cached library already exists.
+#' @return `TRUE` on success, `FALSE` if the set is unavailable or incomplete.
 build_set_templates <- function(name, force = FALSE) {
   out <- set_templates_path(name)
   if (file.exists(out) && !force) {
@@ -134,10 +151,10 @@ build_set_templates <- function(name, force = FALSE) {
   TRUE
 }
 
-#' Fetch + build templates for every set in the manifest. Returns a named
-#' logical vector (TRUE = set ready). `progress` is an optional function
-#' (name, i, n) for UI feedback.
-#' @noRd
+#' Fetch and build templates for every set in the manifest
+#'
+#' @param progress Optional callback `function(name, i, n)` for UI feedback.
+#' @return A named logical vector (`TRUE` = set ready for auto-detection).
 setup_piece_sets <- function(progress = NULL) {
   manifest <- piece_set_manifest()
   n <- nrow(manifest)

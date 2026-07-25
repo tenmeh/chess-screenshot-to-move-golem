@@ -5,8 +5,8 @@
 .Ruserdata
 *.Rproj
 
-# renv/packrat (not used, but common artifacts to keep out)
-renv/
+# renv manages its own renv/.gitignore (ignores library/, staging/, etc.);
+# renv.lock, .Rprofile and renv/activate.R are meant to be committed.
 packrat/
 
 # OS

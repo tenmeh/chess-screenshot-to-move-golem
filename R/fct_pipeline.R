@@ -1,14 +1,20 @@
-#' End-to-end: board image -> recognized position, with auto orientation.
-#' Port of chessvision/pipeline.py.
-#' @noRd
+# End-to-end: board image -> recognized position, with auto orientation.
+# Port of chessvision/pipeline.py.
 
-#' Pick orientation. Legality is primary; the coordinate hint breaks ties.
+#' Resolve board orientation, preferring a legal position
 #'
-#' A wrong 180-degree flip scrambles the whole board, so we never flip on a
-#' weak signal: if exactly one orientation is legal we take it, and only when
-#' both (or neither) are legal do we defer to the coordinate hint, then to the
-#' default of white-on-bottom.
-#' @noRd
+#' Legality is primary; the coordinate hint breaks ties. A wrong 180-degree
+#' flip scrambles the whole board, so orientation is never flipped on a weak
+#' signal: if exactly one orientation is legal it is taken, and only when both
+#' (or neither) are legal does the coordinate hint decide, then the default of
+#' white-on-bottom.
+#'
+#' @param ctx A chess.js V8 context from [new_chess_context()].
+#' @param symbols Character vector of 64 recognized symbols, image order.
+#' @param turn Side to move, "w" or "b".
+#' @param flip_hint Orientation hint from [detect_flip()] (`TRUE`/`FALSE`/`NA`).
+#' @return A list with `fen`, `placement`, `flip` (chosen orientation) and
+#'   `valid` (whether the chosen FEN is legal).
 resolve_orientation <- function(ctx, symbols, turn, flip_hint) {
   cand_false <- build_fen(symbols, turn = turn, flip = FALSE)
   cand_true <- build_fen(symbols, turn = turn, flip = TRUE)
@@ -33,13 +39,21 @@ resolve_orientation <- function(ctx, symbols, turn, flip_hint) {
   )
 }
 
-#' image: a magick image (the raw screenshot).
+#' Recognize a board screenshot end-to-end
 #'
-#' `libs`: named list of template libraries to auto-detect across (default:
-#' every locally available set). Returns a list: board_img, symbols,
-#' display_symbols, fen, placement, flip, flip_detected, valid, set,
-#' set_scores.
-#' @noRd
+#' Crops and splits the screenshot, auto-detects the piece set, reads the
+#' symbols, and resolves orientation into a FEN.
+#'
+#' @param image A magick image of the raw screenshot.
+#' @param libs Named list of template libraries to auto-detect across (default:
+#'   every locally available set, via [load_all_template_libraries()]).
+#' @param ctx A chess.js V8 context from [new_chess_context()].
+#' @param turn Side to move, "w" or "b".
+#' @param autocrop Whether to trim near-uniform margins before splitting.
+#' @return A list describing the recognition: `board_img`, `symbols`,
+#'   `display_symbols` (white-bottom frame matching `fen`), `fen`, `placement`,
+#'   `flip`, `flip_detected`, `valid`, `set`, `set_scores`, `set_confident`,
+#'   `set_margin` and `set_min_occ`.
 recognize_position <- function(image, libs = load_all_template_libraries(),
                                ctx, turn = "w", autocrop = TRUE) {
   board_img <- prepare_board(image, autocrop)

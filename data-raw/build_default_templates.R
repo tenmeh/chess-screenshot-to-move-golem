@@ -29,8 +29,10 @@ board <- render_position(start_symbols, size = 512)
 squares <- split_board(board)
 lib <- build_from_start_position(squares)
 
-cat(sprintf("Built %d/12 templates. Empty threshold: %.3f\n",
-            length(lib$pieces), lib$empty_threshold))
+cat(sprintf(
+  "Built %d/12 templates. Empty threshold: %.3f\n",
+  length(lib$pieces), lib$empty_threshold
+))
 
 out_path <- app_sys("app", "templates.rds")
 save_template_library(lib, out_path)

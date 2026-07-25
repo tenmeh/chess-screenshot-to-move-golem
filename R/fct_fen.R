@@ -1,9 +1,11 @@
-#' Assemble a FEN from a recognized 8x8 grid of piece symbols
-#' Port of chessvision/fen.py
-#' @noRd
+# Assemble a FEN from a recognized 8x8 grid of piece symbols.
+# Port of chessvision/fen.py.
 
-#' symbols: 64 entries, row-major, top row first ("." for empty)
-#' @noRd
+#' Convert a 64-symbol grid to a FEN piece-placement field
+#'
+#' @param symbols Character vector of 64 entries, row-major, top row first,
+#'   using FEN piece letters and "." for an empty square.
+#' @return The FEN placement string (ranks separated by "/").
 grid_to_placement <- function(symbols) {
   if (length(symbols) != 64) stop("expected 64 squares")
   ranks <- character(8)
@@ -28,13 +30,21 @@ grid_to_placement <- function(symbols) {
   paste(ranks, collapse = "/")
 }
 
-#' Grant castling only when king and matching rook sit on home squares.
-#' `symbols` here is already in standard (white-bottom) orientation.
-#' Index of row-major square (0-indexed row/col) -> 1-indexed R vector position.
-#' @noRd
+#' Map a 0-indexed board row/column to a 1-indexed symbol-vector position
+#'
+#' @param row 0-indexed board row (0 = top rank shown).
+#' @param col 0-indexed board column (0 = leftmost file shown).
+#' @return The 1-indexed position into a row-major 64-symbol vector.
 sq_idx <- function(row, col) row * 8 + col + 1
 
-#' @noRd
+#' Infer castling rights from piece placement
+#'
+#' Grants a castling right only when the king and the matching rook sit on
+#' their home squares. `symbols` must already be in standard (white-bottom)
+#' orientation.
+#'
+#' @param symbols Character vector of 64 symbols, row-major, top row first.
+#' @return A FEN castling field (e.g. "KQkq"), or "-" if no rights.
 infer_castling <- function(symbols) {
   rights <- ""
   if (symbols[sq_idx(7, 4)] == "K" && symbols[sq_idx(7, 7)] == "R") rights <- paste0(rights, "K")
@@ -44,9 +54,14 @@ infer_castling <- function(symbols) {
   if (rights == "") "-" else rights
 }
 
-#' Build a full FEN string from recognized symbols.
-#' `flip = TRUE` means the screenshot had black on the bottom.
-#' @noRd
+#' Build a full FEN string from recognized symbols
+#'
+#' @param symbols Character vector of 64 symbols, row-major, top row first.
+#' @param turn Side to move, "w" or "b".
+#' @param flip `TRUE` if the screenshot had black on the bottom (the symbols are
+#'   reversed to the standard white-bottom frame before assembly).
+#' @return A list with `fen` (full FEN string) and `placement` (the placement
+#'   field only).
 build_fen <- function(symbols, turn = "w", flip = FALSE) {
   if (flip) symbols <- rev(symbols)
   placement <- grid_to_placement(symbols)
