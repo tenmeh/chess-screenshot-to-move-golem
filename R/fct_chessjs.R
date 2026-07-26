@@ -38,6 +38,46 @@ is_valid_fen <- function(ctx, fen) {
   isTRUE(tryCatch(validate_fen(ctx, fen)$ok, error = function(e) FALSE))
 }
 
+#' List every legal move in a position, in UCI
+#'
+#' @param ctx A chess.js V8 context from [new_chess_context()].
+#' @param fen A FEN string.
+#' @return A character vector of UCI moves (empty if the position is over or
+#'   invalid).
+legal_moves <- function(ctx, fen) {
+  ctx$assign("fenLegal", fen)
+  res <- ctx$eval("(function(){
+    try {
+      var g = new ChessCtor(fenLegal);
+      return JSON.stringify(g.moves({verbose: true}).map(function(m){
+        return m.from + m.to + (m.promotion ? m.promotion : '');
+      }));
+    } catch (e) { return '[]'; }
+  })()")
+  out <- jsonlite::fromJSON(res)
+  if (!length(out)) character(0) else as.character(out)
+}
+
+#' The position that results from playing a move
+#'
+#' @param ctx A chess.js V8 context from [new_chess_context()].
+#' @param fen A FEN string of the position before the move.
+#' @param uci_move A UCI move string.
+#' @return The FEN after the move, or `NA_character_` if it is illegal.
+fen_after_move <- function(ctx, fen, uci_move) {
+  ctx$assign("fenAfter", fen)
+  ctx$assign("uciAfter", uci_move)
+  res <- ctx$eval("(function(){
+    try {
+      var g = new ChessCtor(fenAfter);
+      var mv = {from: uciAfter.slice(0,2), to: uciAfter.slice(2,4)};
+      if (uciAfter.length > 4) mv.promotion = uciAfter[4];
+      return g.move(mv) ? g.fen() : '';
+    } catch (e) { return ''; }
+  })()")
+  if (!nzchar(res)) NA_character_ else res
+}
+
 #' Convert a UCI move to SAN for a position
 #'
 #' @param ctx A chess.js V8 context from [new_chess_context()].

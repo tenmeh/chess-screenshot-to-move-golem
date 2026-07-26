@@ -111,3 +111,22 @@
   overflow-y: auto;
   word-break: break-word;
 }
+
+/* ---- blunder radar ---- */
+.cv-radar-controls .form-group {
+  margin-bottom: 0.35rem;
+}
+.cv-radar-summary {
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+.cv-radar-caption {
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+}
+.cv-risk-bad {
+  color: #c53030;
+  font-weight: 600;
+  font-size: 0.8rem;
+}

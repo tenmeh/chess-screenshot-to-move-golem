@@ -40,6 +40,22 @@ mod_board_ui <- function(id) {
         tags$strong("Engine lines"),
         uiOutput(ns("lines")),
         tags$hr(),
+        # ---- Blunder Radar ----
+        div(
+          class = "cv-radar",
+          tags$strong("Blunder radar"),
+          div(
+            class = "cv-radar-controls",
+            checkboxInput(ns("radar_on"), "Show what a human would play", value = FALSE),
+            conditionalPanel(
+              condition = "input.radar_on",
+              ns = ns,
+              sliderInput(ns("rating"), "Opponent rating", 1100, 1900, 1500, step = 400)
+            )
+          ),
+          uiOutput(ns("radar"))
+        ),
+        tags$hr(),
         tags$strong("Moves"),
         div(class = "cv-movelist", textOutput(ns("movelist"))),
         tags$hr(),
@@ -70,6 +86,20 @@ mod_board_server <- function(id, chess_ctx, incoming = reactive(NULL)) {
 
     # Latest analysis snapshot drained from the engine.
     snap <- reactiveVal(NULL)
+
+    # Human model, started lazily: it is only needed when the radar is on, and
+    # it is restarted when the rating changes because each rating is a separate
+    # network.
+    maia <- reactiveVal(NULL)
+    session$onSessionEnded(function() maia_session_stop(isolate(maia())))
+
+    observeEvent(list(input$radar_on, input$rating), {
+      maia_session_stop(maia())
+      maia(NULL)
+      if (isTRUE(input$radar_on) && human_model_available(input$rating)) {
+        maia(maia_session_start(input$rating))
+      }
+    })
 
     # Ids are resolved once here and passed explicitly to the browser, so the
     # JS never has to guess at Shiny's namespacing.
@@ -182,23 +212,108 @@ mod_board_server <- function(id, chess_ctx, incoming = reactive(NULL)) {
       ))
     })
 
-    # Engine's best move as an arrow on the board.
+    # Blunder radar for the current position. Recomputed only when the radar is
+    # switched on, since it costs an extra engine search.
+    radar <- reactive({
+      req(isTRUE(input$radar_on))
+      m <- maia()
+      req(!is.null(m))
+      blunder_risk(current_fen(), m, movetime_ms = 700)
+    })
+
+    # Arrows: the engine's choice in blue, and what a human of the selected
+    # rating would actually play in orange, thickness scaled by probability.
+    # Seeing the two disagree is the entire point of the radar.
     observe({
       s <- snap()
       arrows <- list()
       if (!is.null(s) && length(s$lines)) {
         best <- s$lines[[1]]$first
-        arrows <- list(list(
-          from = substr(best, 1, 2),
-          to = substr(best, 3, 4),
-          color = "#2b6cb0",
-          opacity = 0.7
-        ))
+        arrows <- c(arrows, list(list(
+          from = substr(best, 1, 2), to = substr(best, 3, 4),
+          color = "#2b6cb0", opacity = 0.75, width = 9
+        )))
+      }
+      if (isTRUE(input$radar_on)) {
+        rad <- tryCatch(radar(), error = function(e) NULL)
+        if (!is.null(rad) && nrow(rad$moves)) {
+          shown <- radar_arrow_moves(rad$moves)
+          for (i in seq_len(nrow(shown))) {
+            mv <- shown$move[i]
+            losing <- shown$loss[i] >= 100
+            arrows <- c(arrows, list(list(
+              from = substr(mv, 1, 2), to = substr(mv, 3, 4),
+              color = if (losing) "#c53030" else "#dd6b20",
+              opacity = 0.45 + 0.4 * shown$prob[i],
+              width = 4 + 12 * shown$prob[i]
+            )))
+          }
+        }
       }
       session$sendCustomMessage("chessvision-board-arrows", list(
         container = board_id, arrows = arrows
       ))
     })
+
+    output$radar <- renderUI({
+      if (!isTRUE(input$radar_on)) {
+        return(NULL)
+      }
+      if (is.null(maia())) {
+        return(tags$p(
+          class = "text-muted",
+          sprintf(
+            "Human model unavailable (needs lc0 and the maia-%d weights).",
+            match_maia_rating(input$rating)
+          )
+        ))
+      }
+      rad <- tryCatch(radar(), error = function(e) NULL)
+      if (is.null(rad) || is.na(rad$risk) || !nrow(rad$moves)) {
+        return(tags$p(class = "text-muted", "Assessing..."))
+      }
+
+      level <- if (rad$risk >= 150) {
+        list("danger", "high")
+      } else if (rad$risk >= 50) {
+        list("warning", "moderate")
+      } else {
+        list("success", "low")
+      }
+
+      rows <- lapply(seq_len(min(4, nrow(rad$moves))), function(i) {
+        mv <- rad$moves[i, ]
+        san <- tryCatch(fen_move_to_san(chess_ctx, current_fen(), mv$move),
+          error = function(e) NULL
+        )
+        tags$div(
+          class = "cv-line",
+          tags$span(class = "cv-line-score", sprintf("%.0f%%", 100 * mv$prob)),
+          tags$span(class = "cv-line-move", san %||% mv$move),
+          tags$span(
+            class = if (mv$loss >= 100) "cv-risk-bad" else "cv-line-pv",
+            if (mv$loss >= 20) sprintf("loses %.1f pawns", mv$loss / 100) else "sound"
+          )
+        )
+      })
+
+      tagList(
+        tags$div(
+          class = sprintf("alert alert-%s cv-radar-summary", level[[1]]),
+          sprintf(
+            "%s risk for a %d player: expected loss %.2f pawns, %.0f%% chance of a real mistake.",
+            tools::toTitleCase(level[[2]]), match_maia_rating(input$rating),
+            rad$risk / 100, 100 * rad$blunder_prob
+          )
+        ),
+        tags$div(
+          class = "text-muted cv-radar-caption",
+          "Where this player is most likely to go wrong (chance x cost):"
+        ),
+        do.call(tagList, rows)
+      )
+    })
+    outputOptions(output, "radar", suspendWhenHidden = FALSE)
 
     output$lines <- renderUI({
       s <- snap()
