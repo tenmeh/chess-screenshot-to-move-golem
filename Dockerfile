@@ -61,6 +61,11 @@ RUN Rscript -e "library(chessvision); \
       message(sprintf('engine: %s', chessvision:::find_local_engine())); \
       message(sprintf('piece sets available: %d', length(sets))); \
       stopifnot(length(sets) >= 1)"
+# Add renv::restore() after the package installation to 
+# ensure all dependencies are properly installed:
+RUN R CMD INSTALL --no-multiarch --with-keep.source . \
+    && Rscript -e "renv::restore()" \
+    && rm -rf /tmp/downloaded_packages
 
 # Cloud Run (and most hosts) inject the port to listen on.
 ENV PORT=8080
