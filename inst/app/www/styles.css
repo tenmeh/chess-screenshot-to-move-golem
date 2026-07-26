@@ -42,6 +42,12 @@
   min-width: 0;
   position: relative;
 }
+/* The Analyze tab's correction board sits standalone (no eval-bar flex
+   parent), so it needs its own width cap to stay proportionate next to the
+   input screenshot beside it. */
+.cv-board-preview {
+  max-width: 320px;
+}
 /* The arrow overlay sits on top of the board without eating drag events. */
 .cv-board .cv-arrows {
   position: absolute;

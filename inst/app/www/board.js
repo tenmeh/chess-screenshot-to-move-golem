@@ -66,7 +66,16 @@
 
   function build(msg) {
     var cid = msg.container;
-    var game = new window.ChessCtor(msg.fen || undefined);
+    var game;
+    try {
+      game = new window.ChessCtor(msg.fen || undefined);
+    } catch (e) {
+      // chess.js throws on a structurally illegal FEN (missing king, pawns on
+      // the back rank, ...). The server is expected to filter these out
+      // before sending a create/set message, but falling back to the start
+      // position beats leaving this container's board half-built forever.
+      game = new window.ChessCtor();
+    }
     var board = window.Chessboard(cid, {
       draggable: true,
       position: game.fen(),
@@ -227,7 +236,15 @@
       pending[msg.container] = msg;
       return;
     }
-    st.game = new window.ChessCtor(msg.fen);
+    var game;
+    try {
+      game = new window.ChessCtor(msg.fen);
+    } catch (e) {
+      // A structurally illegal FEN (see build()); ignore rather than break
+      // an otherwise-working board.
+      return;
+    }
+    st.game = game;
     st.board.position(msg.fen, false);
     if (msg.orientation && msg.orientation !== st.orientation) {
       st.orientation = msg.orientation;
