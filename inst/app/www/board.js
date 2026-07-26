@@ -71,7 +71,9 @@
       draggable: true,
       position: game.fen(),
       orientation: msg.orientation || "white",
-      pieceTheme: msg.pieceTheme + "/{piece}.svg",
+      // Full URL template from R, e.g. "pieces/{piece}.svg" - the extension
+      // varies because a few sets ship webp/png instead of svg.
+      pieceTheme: msg.pieceTheme,
       onDragStart: onDragStart(cid),
       onDrop: onDrop(cid),
       onSnapEnd: onSnapEnd(cid)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/fct_piecesets.R
 \name{piece_set_manifest}
 \alias{piece_set_manifest}
-\title{Curated manifest of supported Lichess piece sets}
+\title{Manifest of every Lichess piece set}
 \usage{
 piece_set_manifest()
 }
@@ -10,7 +10,9 @@ piece_set_manifest()
 A data frame with \code{name} and \code{license} columns.
 }
 \description{
-The popular Lichess sets with distinct piece glyphs. Gimmick sets (mono,
-disguised) are excluded because their pieces are visually ambiguous, which
-breaks recognition by design. License strings are from lila's COPYING.md.
+Every Lichess piece set that can be recognized, so any Lichess theme works
+without calibration. "mono", "letter" and "disguised" are deliberately
+excluded: their pieces are monochrome outlines, bare letters, or (by design)
+all identical, so they are ambiguous on purpose and would only add
+confusable templates. License strings are from lila's COPYING.md.
 }

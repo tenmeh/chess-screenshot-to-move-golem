@@ -26,7 +26,18 @@ mod_calibrate_ui <- function(id) {
       "as the \"custom\" set."
     ),
     image_input_ui("cal", ns),
-    checkboxInput(ns("autocrop"), "Auto-crop to the board", value = TRUE),
+    fluidRow(
+      column(6, radioButtons(
+        ns("orientation"), "Board orientation",
+        c(
+          "Auto-detect" = "auto",
+          "White on the bottom" = "white",
+          "Black on the bottom" = "black"
+        ),
+        inline = FALSE
+      )),
+      column(6, checkboxInput(ns("autocrop"), "Auto-crop to the board", value = TRUE))
+    ),
     actionButton(ns("calibrate"), "Calibrate", class = "btn-primary"),
     actionButton(ns("reset"), "Reset to Lichess defaults"),
     tags$hr(),
@@ -83,10 +94,17 @@ mod_calibrate_server <- function(id, chess_ctx) {
       req(img())
       board_img <- prepare_board(img(), autocrop = input$autocrop)
       squares <- split_board(board_img)
-      flip <- detect_flip(board_img)
-      if (isTRUE(flip)) squares <- rev(squares)
+
+      # Orientation decides which end of the board is white's. Get this wrong
+      # and every template is learned from the opposing colour, which poisons
+      # all later recognition - so it is resolved deterministically here.
+      ori <- resolve_calibration_flip(squares, board_img, input$orientation)
+      if (isTRUE(ori$flip)) squares <- rev(squares)
 
       lib <- build_from_start_position(squares)
+      # Last line of defence: white pieces must be brighter than black ones.
+      guard <- fix_template_colour_swap(lib)
+      lib <- guard$lib
       n <- length(lib$pieces)
       save_template_library(lib, custom_templates_path())
 
@@ -94,10 +112,17 @@ mod_calibrate_server <- function(id, chess_ctx) {
       recognized <- recognize_symbols(squares, full_lib)
       preview_img(render_position(recognized, size = 320))
 
+      detail <- sprintf(
+        " Orientation: %s on the bottom (%s).%s",
+        if (ori$flip) "black" else "white", ori$source,
+        if (guard$swapped) " Piece colours were inverted and have been corrected." else ""
+      )
+
       if (n == 12) {
         status(tags$div(
           class = "alert alert-success",
-          "Calibrated all 12 piece templates. You're ready to analyze positions."
+          "Calibrated all 12 piece templates. You're ready to analyze positions.",
+          detail
         ))
       } else {
         missing <- setdiff(PIECE_SYMBOLS, names(lib$pieces))

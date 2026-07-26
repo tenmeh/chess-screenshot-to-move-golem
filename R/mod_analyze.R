@@ -15,8 +15,12 @@ mod_analyze_ui <- function(id) {
     image_input_ui("img", ns),
     fluidRow(
       column(3, radioButtons(ns("turn"), "Side to move", c("White" = "w", "Black" = "b"))),
+      column(3, radioButtons(
+        ns("orientation"), "Board orientation",
+        c("Auto-detect" = "auto", "White on bottom" = "white", "Black on bottom" = "black")
+      )),
       column(3, checkboxInput(ns("autocrop"), "Auto-crop to board", value = TRUE)),
-      column(6, sliderInput(ns("movetime"), "Engine time (s)", min = 0.2, max = 5, value = 1, step = 0.1))
+      column(3, sliderInput(ns("movetime"), "Engine time (s)", min = 0.2, max = 5, value = 1, step = 0.1))
     ),
     actionButton(ns("analyze"), "Analyze", class = "btn-primary"),
     tags$hr(),
@@ -58,7 +62,8 @@ mod_analyze_server <- function(id, chess_ctx) {
       # user downloaded or calibrated since the last click.
       libs <- load_all_template_libraries()
       recognize_position(img(), libs, chess_ctx,
-        turn = input$turn, autocrop = input$autocrop
+        turn = input$turn, autocrop = input$autocrop,
+        orientation = input$orientation
       )
     })
 
@@ -78,7 +83,7 @@ mod_analyze_server <- function(id, chess_ctx) {
       req(analysis())
       res <- analysis()
       side <- if (res$flip) "black" else "white"
-      how <- if (is.na(res$flip_detected)) "assumed" else "auto-detected"
+      how <- res$flip_source
 
       # Low match confidence => the screenshot's piece set almost certainly
       # isn't installed (typically Chess.com or a custom theme). Say so plainly

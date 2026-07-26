@@ -1,41 +1,52 @@
 # End-to-end: board image -> recognized position, with auto orientation.
 # Port of chessvision/pipeline.py.
 
-#' Resolve board orientation, preferring a legal position
+#' Resolve board orientation
 #'
-#' Legality is primary; the coordinate hint breaks ties. A wrong 180-degree
-#' flip scrambles the whole board, so orientation is never flipped on a weak
-#' signal: if exactly one orientation is legal it is taken, and only when both
-#' (or neither) are legal does the coordinate hint decide, then the default of
-#' white-on-bottom.
+#' Signals are consulted strongest-first (see fct_orientation.R): an explicit
+#' user choice, then where the two armies sit, then coordinate labels, with
+#' legality only breaking a remaining tie. A wrong 180-degree flip scrambles
+#' the whole board, so the chosen orientation is also reported back to the UI
+#' along with the signal that decided it.
 #'
 #' @param ctx A chess.js V8 context from [new_chess_context()].
 #' @param symbols Character vector of 64 recognized symbols, image order.
 #' @param turn Side to move, "w" or "b".
-#' @param flip_hint Orientation hint from [detect_flip()] (`TRUE`/`FALSE`/`NA`).
-#' @return A list with `fen`, `placement`, `flip` (chosen orientation) and
-#'   `valid` (whether the chosen FEN is legal).
-resolve_orientation <- function(ctx, symbols, turn, flip_hint) {
+#' @param flip_hint Coordinate-label hint from [detect_flip()].
+#' @param manual One of "auto", "white" (white on bottom) or "black".
+#' @return A list with `fen`, `placement`, `flip`, `valid` and `source` (the
+#'   name of the deciding signal).
+resolve_orientation <- function(ctx, symbols, turn, flip_hint, manual = "auto") {
   cand_false <- build_fen(symbols, turn = turn, flip = FALSE)
   cand_true <- build_fen(symbols, turn = turn, flip = TRUE)
   legal_false <- is_valid_fen(ctx, cand_false$fen)
   legal_true <- is_valid_fen(ctx, cand_true$fen)
 
-  if (legal_false && !legal_true) {
-    flip <- FALSE
-  } else if (legal_true && !legal_false) {
-    flip <- TRUE
+  mass <- detect_flip_piece_mass(symbols)
+
+  decided <- if (identical(manual, "white")) {
+    list(flip = FALSE, source = "you chose white on the bottom")
+  } else if (identical(manual, "black")) {
+    list(flip = TRUE, source = "you chose black on the bottom")
+  } else if (!is.na(mass)) {
+    list(flip = mass, source = "army positions")
   } else if (!is.na(flip_hint)) {
-    flip <- flip_hint
+    list(flip = flip_hint, source = "coordinate labels")
+  } else if (legal_false && !legal_true) {
+    list(flip = FALSE, source = "legality")
+  } else if (legal_true && !legal_false) {
+    list(flip = TRUE, source = "legality")
   } else {
-    flip <- FALSE
+    list(flip = FALSE, source = "assumed (no reliable signal)")
   }
 
+  flip <- decided$flip
   list(
     fen = if (flip) cand_true$fen else cand_false$fen,
     placement = if (flip) cand_true$placement else cand_false$placement,
     flip = flip,
-    valid = if (flip) legal_true else legal_false
+    valid = if (flip) legal_true else legal_false,
+    source = decided$source
   )
 }
 
@@ -50,18 +61,20 @@ resolve_orientation <- function(ctx, symbols, turn, flip_hint) {
 #' @param ctx A chess.js V8 context from [new_chess_context()].
 #' @param turn Side to move, "w" or "b".
 #' @param autocrop Whether to trim near-uniform margins before splitting.
+#' @param orientation One of "auto", "white" (white on bottom) or "black".
 #' @return A list describing the recognition: `board_img`, `symbols`,
 #'   `display_symbols` (white-bottom frame matching `fen`), `fen`, `placement`,
-#'   `flip`, `flip_detected`, `valid`, `set`, `set_scores`, `set_confident`,
-#'   `set_margin` and `set_min_occ`.
+#'   `flip`, `flip_detected`, `flip_source`, `valid`, `set`, `set_scores`,
+#'   `set_confident`, `set_margin` and `set_min_occ`.
 recognize_position <- function(image, libs = load_all_template_libraries(),
-                               ctx, turn = "w", autocrop = TRUE) {
+                               ctx, turn = "w", autocrop = TRUE,
+                               orientation = "auto") {
   board_img <- prepare_board(image, autocrop)
   squares <- split_board(board_img)
   rec <- recognize_symbols_auto(squares, libs)
   symbols <- rec$symbols
   flip_detected <- detect_flip(board_img)
-  resolved <- resolve_orientation(ctx, symbols, turn, flip_detected)
+  resolved <- resolve_orientation(ctx, symbols, turn, flip_detected, orientation)
 
   list(
     board_img = board_img,
@@ -73,6 +86,7 @@ recognize_position <- function(image, libs = load_all_template_libraries(),
     placement = resolved$placement,
     flip = resolved$flip,
     flip_detected = flip_detected,
+    flip_source = resolved$source,
     valid = resolved$valid,
     set = rec$set,
     set_scores = rec$scores,

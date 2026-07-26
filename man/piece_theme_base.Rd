@@ -2,7 +2,7 @@
 % Please edit documentation in R/golem_utils.R
 \name{piece_theme_base}
 \alias{piece_theme_base}
-\title{Base URL for a piece set's SVGs as served to the browser}
+\title{Piece-image URL template for the interactive board}
 \usage{
 piece_theme_base(set = "cburnett")
 }
@@ -10,9 +10,9 @@ piece_theme_base(set = "cburnett")
 \item{set}{A piece-set name, or "custom"/unknown for the bundled default.}
 }
 \value{
-A URL prefix that \code{\link[=mod_board_ui]{mod_board_ui()}}'s piece theme appends
-\verb{\{piece\}.svg} to.
+A URL containing a \code{{piece}} placeholder that chessboard.js fills in,
+using whichever image extension the set actually ships.
 }
 \description{
-Base URL for a piece set's SVGs as served to the browser
+Piece-image URL template for the interactive board
 }

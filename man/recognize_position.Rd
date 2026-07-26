@@ -9,7 +9,8 @@ recognize_position(
   libs = load_all_template_libraries(),
   ctx,
   turn = "w",
-  autocrop = TRUE
+  autocrop = TRUE,
+  orientation = "auto"
 )
 }
 \arguments{
@@ -23,12 +24,14 @@ every locally available set, via \code{\link[=load_all_template_libraries]{load_
 \item{turn}{Side to move, "w" or "b".}
 
 \item{autocrop}{Whether to trim near-uniform margins before splitting.}
+
+\item{orientation}{One of "auto", "white" (white on bottom) or "black".}
 }
 \value{
 A list describing the recognition: \code{board_img}, \code{symbols},
 \code{display_symbols} (white-bottom frame matching \code{fen}), \code{fen}, \code{placement},
-\code{flip}, \code{flip_detected}, \code{valid}, \code{set}, \code{set_scores}, \code{set_confident},
-\code{set_margin} and \code{set_min_occ}.
+\code{flip}, \code{flip_detected}, \code{flip_source}, \code{valid}, \code{set}, \code{set_scores},
+\code{set_confident}, \code{set_margin} and \code{set_min_occ}.
 }
 \description{
 Crops and splits the screenshot, auto-detects the piece set, reads the

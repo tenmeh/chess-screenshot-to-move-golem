@@ -41,19 +41,19 @@ golem_add_external_resources <- function() {
   )
 }
 
-#' Base URL for a piece set's SVGs as served to the browser
+#' Piece-image URL template for the interactive board
 #'
 #' @param set A piece-set name, or "custom"/unknown for the bundled default.
-#' @return A URL prefix that [mod_board_ui()]'s piece theme appends
-#'   `{piece}.svg` to.
+#' @return A URL containing a `{piece}` placeholder that chessboard.js fills in,
+#'   using whichever image extension the set actually ships.
 piece_theme_base <- function(set = "cburnett") {
-  if (identical(set, "cburnett") || is.null(set) || is.na(set)) {
-    return("pieces")
+  if (is.null(set) || is.na(set) || identical(set, "cburnett") ||
+    is.null(piece_set_path(set))) {
+    return("pieces/{piece}.svg")
   }
-  if (is.null(piece_set_path(set))) {
-    return("pieces")
-  }
-  file.path("piecesets", set)
+  ext <- piece_set_ext(piece_set_path(set))
+  if (is.null(ext)) ext <- "svg"
+  sprintf("piecesets/%s/{piece}.%s", set, ext)
 }
 
 #' Drag-drop file input plus a clipboard-paste zone

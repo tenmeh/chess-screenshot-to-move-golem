@@ -21,12 +21,26 @@ without ever blocking Shiny's single thread.
 
 **Zero calibration.** The piece set is auto-detected per screenshot: cburnett
 (Lichess's default) is bundled, and one click in the *Piece sets* tab fetches
-~20 more popular Lichess sets (merida, alpha, staunty, horsey, maestro, ...)
-straight from lichess.org's public repository into your local cache. Every
-square of the screenshot is scored against every template of every installed
-set in a single matrix multiply; the best-matching set wins and classifies the
-board. Orientation (white/black on the bottom) is detected automatically from
-the coordinate labels, with a legality check as backstop.
+every other recognizable Lichess set (38 of them - merida, alpha, staunty,
+horsey, maestro, ...) straight from lichess.org's public repository into your
+local cache. Every square of the screenshot is scored against every template of
+every installed set in a single matrix multiply; the best-matching set wins and
+classifies the board.
+
+**Orientation is determined, not guessed.** Signals are consulted
+strongest-first:
+
+1. an explicit **Board orientation** choice in the UI - always wins;
+2. **where the armies sit** - the two sides start on opposite ends and
+   essentially never swap, so this is decisive for real positions;
+3. **piece brightness** during calibration - white pieces are light-filled, so
+   the brighter end of a starting position is white's;
+4. coordinate labels, then FEN legality, as last resorts.
+
+Calibration additionally asserts that the white templates really are brighter
+than the black ones, so a misjudged orientation can never silently teach the
+recognizer white pieces from black artwork (which would corrupt every later
+reading).
 
 Piece art is downloaded at runtime for personal use and never redistributed
 with this package - several sets are CC BY-NC-SA or freeware, which don't mix
@@ -125,3 +139,14 @@ data-raw/build_default_templates.R   # regenerate inst/app/templates.rds
 - Stockfish and piece sets are downloaded to
   `tools::R_user_dir("chessvision", "cache")` on first use - needs an
   internet connection once.
+- A few Lichess sets are hard on template matching because their *own* pieces
+  are nearly identical: `firi`'s black and white rooks are 98% similar, and
+  `governor` and `pirouetti` are close behind. They read correctly from a clean
+  screenshot but can misread a heavily compressed or downscaled one. `mono`,
+  `letter` and `disguised` are excluded outright - their pieces are ambiguous
+  by design. `reillycraig` is excluded automatically because its SVGs do not
+  rasterize.
+- **Chess.com piece art is deliberately not downloaded.** It is proprietary and
+  its terms prohibit scraping, so bundling or auto-fetching it would be a
+  licensing problem. Use the one-shot manual calibration instead - it is
+  designed for exactly this and works for any custom theme.

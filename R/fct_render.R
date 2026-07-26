@@ -12,15 +12,21 @@ START_SYMBOLS <- c(
   "R", "N", "B", "Q", "K", "B", "N", "R"
 )
 
-#' Resolve the SVG file path for a piece symbol within a set
+#' Resolve the image file path for a piece symbol within a set
+#'
+#' Most sets ship SVG, but a few use webp or png, so the extension is resolved
+#' from what the set directory actually contains.
 #'
 #' @param symbol A FEN piece letter (uppercase = white, lowercase = black).
-#' @param set_dir Directory holding the 12 piece SVGs (defaults to bundled
+#' @param set_dir Directory holding the 12 piece images (defaults to bundled
 #'   cburnett).
-#' @return The file path of the matching SVG (e.g. `wN.svg` for "N").
+#' @return The file path of the matching image (e.g. `wN.svg` for "N").
 piece_svg_path <- function(symbol, set_dir = app_sys("svg")) {
   color <- if (symbol == toupper(symbol)) "w" else "b"
-  file.path(set_dir, paste0(color, toupper(symbol), ".svg"))
+  base <- paste0(color, toupper(symbol))
+  ext <- piece_set_ext(set_dir)
+  if (is.null(ext)) ext <- "svg"
+  file.path(set_dir, paste0(base, ".", ext))
 }
 
 #' Render an 8x8 board with pieces placed from a symbol grid

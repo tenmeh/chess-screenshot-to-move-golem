@@ -2,19 +2,20 @@
 % Please edit documentation in R/fct_render.R
 \name{piece_svg_path}
 \alias{piece_svg_path}
-\title{Resolve the SVG file path for a piece symbol within a set}
+\title{Resolve the image file path for a piece symbol within a set}
 \usage{
 piece_svg_path(symbol, set_dir = app_sys("svg"))
 }
 \arguments{
 \item{symbol}{A FEN piece letter (uppercase = white, lowercase = black).}
 
-\item{set_dir}{Directory holding the 12 piece SVGs (defaults to bundled
+\item{set_dir}{Directory holding the 12 piece images (defaults to bundled
 cburnett).}
 }
 \value{
-The file path of the matching SVG (e.g. \code{wN.svg} for "N").
+The file path of the matching image (e.g. \code{wN.svg} for "N").
 }
 \description{
-Resolve the SVG file path for a piece symbol within a set
+Most sets ship SVG, but a few use webp or png, so the extension is resolved
+from what the set directory actually contains.
 }

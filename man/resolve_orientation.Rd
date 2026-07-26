@@ -2,9 +2,9 @@
 % Please edit documentation in R/fct_pipeline.R
 \name{resolve_orientation}
 \alias{resolve_orientation}
-\title{Resolve board orientation, preferring a legal position}
+\title{Resolve board orientation}
 \usage{
-resolve_orientation(ctx, symbols, turn, flip_hint)
+resolve_orientation(ctx, symbols, turn, flip_hint, manual = "auto")
 }
 \arguments{
 \item{ctx}{A chess.js V8 context from \code{\link[=new_chess_context]{new_chess_context()}}.}
@@ -13,16 +13,18 @@ resolve_orientation(ctx, symbols, turn, flip_hint)
 
 \item{turn}{Side to move, "w" or "b".}
 
-\item{flip_hint}{Orientation hint from \code{\link[=detect_flip]{detect_flip()}} (\code{TRUE}/\code{FALSE}/\code{NA}).}
+\item{flip_hint}{Coordinate-label hint from \code{\link[=detect_flip]{detect_flip()}}.}
+
+\item{manual}{One of "auto", "white" (white on bottom) or "black".}
 }
 \value{
-A list with \code{fen}, \code{placement}, \code{flip} (chosen orientation) and
-\code{valid} (whether the chosen FEN is legal).
+A list with \code{fen}, \code{placement}, \code{flip}, \code{valid} and \code{source} (the
+name of the deciding signal).
 }
 \description{
-Legality is primary; the coordinate hint breaks ties. A wrong 180-degree
-flip scrambles the whole board, so orientation is never flipped on a weak
-signal: if exactly one orientation is legal it is taken, and only when both
-(or neither) are legal does the coordinate hint decide, then the default of
-white-on-bottom.
+Signals are consulted strongest-first (see fct_orientation.R): an explicit
+user choice, then where the two armies sit, then coordinate labels, with
+legality only breaking a remaining tie. A wrong 180-degree flip scrambles
+the whole board, so the chosen orientation is also reported back to the UI
+along with the signal that decided it.
 }
