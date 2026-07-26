@@ -14,6 +14,7 @@
 #' @importFrom magick image_read image_info image_data image_resize
 #' @importFrom magick image_crop image_convert image_blank image_composite
 #' @importFrom magick image_write geometry_area geometry_point
+#' @importFrom rsvg rsvg_png
 #' @importFrom processx process
 #' @importFrom jsonlite fromJSON base64_dec
 #' @importFrom V8 v8

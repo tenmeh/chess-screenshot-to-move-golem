@@ -111,10 +111,11 @@ fetch_piece_set <- function(name, quiet = TRUE) {
       ok <- tryCatch(
         {
           utils::download.file(url, dest, mode = "wb", quiet = quiet)
-          # Render check. Some sets (e.g. reillycraig) are SVGs that magick
-          # parses but rasterizes to 1x1, which would yield blank templates -
-          # so require real dimensions, not merely a successful read.
-          info <- image_info(image_read(dest, density = 128))
+          # Render check through the same path used at render time, so a set
+          # is only accepted if it actually rasterizes the way we will draw it.
+          # Some sets (e.g. reillycraig) are SVGs that parse but rasterize to
+          # 1x1, which would yield blank templates.
+          info <- image_info(read_piece_image(dest, 64L))
           info$width >= 16 && info$height >= 16
         },
         error = function(e) FALSE,

@@ -1,5 +1,9 @@
 # chessvision (golem/Shiny)
 
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/tenmeh/chess-screenshot-to-move-golem/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/tenmeh/chess-screenshot-to-move-golem/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
+
 A [golem](https://thinkr-open.github.io/golem/)-structured R Shiny app: drop or
 paste a chess board screenshot, get the best move. This is an R/Shiny port of
 [chess-screenshot-to-move](https://github.com/tenmeh/chess-screenshot-to-move)
@@ -97,6 +101,20 @@ or during development:
 ```r
 source("dev/run_dev.R")
 ```
+
+## Tests
+
+```r
+devtools::test()    # or devtools::check() to run them inside R CMD check
+```
+
+The suite pins the failures this project actually hit - orientation detection
+and the colour-swap guard, the autocrop off-by-one across board sizes, FEN and
+castling assembly, and the confidence gate - so a regression fails loudly
+instead of quietly producing a wrong FEN. Each test was mutation-checked:
+reintroducing the original bug makes it fail. Tests use only the bundled
+cburnett art, so they need no network access and no chess engine, and CI runs
+them on every push and pull request to `main`.
 
 ## Layout
 

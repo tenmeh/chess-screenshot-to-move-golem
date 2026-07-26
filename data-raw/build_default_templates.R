@@ -1,33 +1,21 @@
-#' Build the bundled default (cburnett) template library.
-#'
-#' Renders the standard starting position using the app's own SVG-compositing
-#' pipeline (fct_render.R), then calibrates against it using the app's own
-#' square-extraction pipeline (fct_detect.R / fct_recognize.R). Templates and
-#' runtime recognition are produced by the exact same code path, so there is
-#' no cross-library rendering mismatch to worry about.
-#'
-#' Run from the package root:
-#'   Rscript data-raw/build_default_templates.R
-library(magick)
+# Rebuild the bundled default (cburnett) template library.
+#
+# Renders the standard starting position with the app's own compositing
+# pipeline, then calibrates against it with the app's own square-extraction
+# pipeline, so the templates and runtime recognition come from the exact same
+# code path and there is no cross-renderer mismatch.
+#
+# Run from the package root:
+#   Rscript data-raw/build_default_templates.R
 
-pkg_root <- "C:/Users/tchan/chess-golem"
-app_sys <- function(...) file.path(pkg_root, "inst", ...)
+pkgload::load_all(quiet = TRUE)
 
-source(file.path(pkg_root, "R", "fct_detect.R"))
-source(file.path(pkg_root, "R", "fct_recognize.R"))
-source(file.path(pkg_root, "R", "fct_render.R"))
+board <- render_position(START_SYMBOLS, size = 512)
+lib <- build_from_start_position(split_board(board))
 
-start_symbols <- c(
-  "r", "n", "b", "q", "k", "b", "n", "r",
-  "p", "p", "p", "p", "p", "p", "p", "p",
-  rep(".", 8), rep(".", 8), rep(".", 8), rep(".", 8),
-  "P", "P", "P", "P", "P", "P", "P", "P",
-  "R", "N", "B", "Q", "K", "B", "N", "R"
-)
-
-board <- render_position(start_symbols, size = 512)
-squares <- split_board(board)
-lib <- build_from_start_position(squares)
+# Guard against ever shipping a colour-inverted library.
+guard <- fix_template_colour_swap(lib)
+if (guard$swapped) stop("templates came out colour-inverted; refusing to save")
 
 cat(sprintf(
   "Built %d/12 templates. Empty threshold: %.3f\n",

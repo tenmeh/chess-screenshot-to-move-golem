@@ -29,6 +29,25 @@ piece_svg_path <- function(symbol, set_dir = app_sys("svg")) {
   file.path(set_dir, paste0(base, ".", ext))
 }
 
+#' Rasterize one piece image at a given square size
+#'
+#' SVGs are rendered through the rsvg package rather than ImageMagick's own
+#' SVG delegate. Many ImageMagick builds - including the prebuilt binaries on
+#' Linux package managers - are compiled without librsvg and fall back to a
+#' renderer whose output is poor enough to break template matching. Going
+#' through rsvg makes rendering consistent everywhere. Raster sets (webp/png)
+#' are read directly.
+#'
+#' @param path Path to a piece image.
+#' @param px Target square size in pixels.
+#' @return A magick image scaled to `px` by `px`.
+read_piece_image <- function(path, px) {
+  if (grepl("\\.svg$", path, ignore.case = TRUE)) {
+    return(image_read(rsvg::rsvg_png(path, width = px, height = px)))
+  }
+  image_resize(image_read(path), paste0(px, "x", px))
+}
+
 #' Render an 8x8 board with pieces placed from a symbol grid
 #'
 #' @param symbols Character vector of 64 symbols, row-major, top row first,
@@ -56,9 +75,7 @@ render_position <- function(symbols, size = 512L, set_dir = app_sys("svg")) {
       sym <- symbols[r * 8 + c + 1]
       if (sym == ".") next
       if (is.null(piece_cache[[sym]])) {
-        img <- image_read(piece_svg_path(sym, set_dir), density = sq * 2)
-        img <- image_resize(img, paste0(sq, "x", sq))
-        piece_cache[[sym]] <- img
+        piece_cache[[sym]] <- read_piece_image(piece_svg_path(sym, set_dir), sq)
       }
       board <- image_composite(board, piece_cache[[sym]], offset = geometry_point(c * sq, r * sq))
     }
