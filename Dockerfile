@@ -35,6 +35,10 @@ RUN install2.r --error --skipinstalled \
         jsonlite \
         V8
 
+# Debian installs the engine into /usr/games, which is not on the default PATH
+# of a non-interactive session.
+ENV PATH="/usr/games:${PATH}"
+
 WORKDIR /srv/chessvision
 COPY . .
 

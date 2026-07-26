@@ -38,6 +38,18 @@ find_local_engine <- function() {
   if (nzchar(on_path)) {
     return(unname(on_path))
   }
+  # Debian and Ubuntu package the engine into /usr/games, which is not on the
+  # default PATH of a non-interactive session - so Sys.which() misses an engine
+  # that is in fact installed. Check the usual locations before giving up and
+  # downloading a copy.
+  for (candidate in c(
+    "/usr/games/stockfish", "/usr/local/bin/stockfish",
+    "/usr/bin/stockfish", "/opt/homebrew/bin/stockfish"
+  )) {
+    if (file.exists(candidate)) {
+      return(candidate)
+    }
+  }
 
   dir <- stockfish_bin_dir()
   files <- list.files(dir, recursive = TRUE, full.names = TRUE, ignore.case = TRUE)

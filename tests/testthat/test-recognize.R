@@ -41,6 +41,34 @@ test_that("recognition needs at least one template library", {
   expect_error(recognize_symbols_auto(squares_of(START_SYMBOLS), list()), "no template")
 })
 
+test_that("an explicitly configured engine path takes precedence", {
+  fake <- tempfile(fileext = ".bin")
+  file.create(fake)
+  on.exit(unlink(fake), add = TRUE)
+
+  withr_env <- Sys.getenv("CHESSVISION_STOCKFISH", unset = NA)
+  Sys.setenv(CHESSVISION_STOCKFISH = fake)
+  on.exit(
+    {
+      if (is.na(withr_env)) {
+        Sys.unsetenv("CHESSVISION_STOCKFISH")
+      } else {
+        Sys.setenv(CHESSVISION_STOCKFISH = withr_env)
+      }
+    },
+    add = TRUE
+  )
+
+  expect_equal(find_local_engine(), fake)
+
+  # A configured path that does not exist must be ignored, not returned.
+  Sys.setenv(CHESSVISION_STOCKFISH = file.path(tempdir(), "definitely-absent"))
+  expect_false(identical(
+    find_local_engine(),
+    file.path(tempdir(), "definitely-absent")
+  ))
+})
+
 test_that("confidence gates reject art the installed sets cannot explain", {
   # Scribble over every square: nothing in the library can explain it, so the
   # weakest-square score must collapse and confidence must be withheld.
