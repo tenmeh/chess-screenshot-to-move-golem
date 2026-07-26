@@ -2,7 +2,7 @@
 % Please edit documentation in R/fct_engine.R
 \name{find_local_engine}
 \alias{find_local_engine}
-\title{Find a previously-downloaded Stockfish binary in the cache}
+\title{Find a Stockfish binary already present on this machine}
 \usage{
 find_local_engine()
 }
@@ -10,5 +10,8 @@ find_local_engine()
 The path to the binary, or \code{NULL} if none is present.
 }
 \description{
-Find a previously-downloaded Stockfish binary in the cache
+Prefers one installed system-wide (which is how the container image and most
+Linux setups provide it, e.g. \verb{apt install stockfish}) before looking in the
+download cache. This keeps deployments from fetching a binary at runtime,
+which a read-only or ephemeral filesystem would not survive.
 }

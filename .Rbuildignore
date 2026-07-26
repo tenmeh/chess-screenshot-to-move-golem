@@ -10,3 +10,7 @@
 ^\.git$
 ^\.gitignore$
 ^\.github$
+^app\.R$
+^Dockerfile$
+^\.dockerignore$
+^render\.yaml$

@@ -143,6 +143,51 @@ inst/
 data-raw/build_default_templates.R   # regenerate inst/app/templates.rds
 ```
 
+## Deployment
+
+The app needs to run a real chess engine, which rules out static hosts
+(Netlify) and R-code-only platforms (shinyapps.io, whose bundles cannot ship or
+execute a binary). It is therefore shipped as a container:
+
+```bash
+docker build -t chessvision .
+docker run --rm -p 8080:8080 chessvision   # then open http://localhost:8080
+```
+
+The image installs Stockfish from apt and pre-builds every piece-set template
+at build time, so a cold start needs no downloads and nothing depends on a
+writable filesystem. `app.R` is the entrypoint and honours `$PORT`, so it works
+on any container host. `CHESSVISION_STOCKFISH` can point at a specific engine
+binary if you'd rather not use the one on `PATH`.
+
+`docker-build.yaml` builds the image on every push and pull request, boots it,
+and asserts that the app serves, the engine is found, and Stockfish returns a
+move - so the image is verified even with no cloud account configured.
+
+### Cloud Run
+
+`deploy-cloudrun.yaml` deploys after `R-CMD-check` passes on `main`. Cloud Run
+suits this app because memory is configurable (the neural-net engine planned
+for the next phase needs far more than the 512 MB typical of free tiers) and it
+scales to zero when idle. One-time setup:
+
+1. Create a GCP project and enable the Cloud Run, Artifact Registry and IAM
+   Credentials APIs.
+2. Create an Artifact Registry Docker repository named `chessvision` in a
+   free-tier region (`us-central1`, `us-east1` or `us-west1`).
+3. Create a service account with *Cloud Run Admin*, *Artifact Registry Writer*
+   and *Service Account User*, and set up
+   [workload identity federation](https://github.com/google-github-actions/auth#preferred-direct-workload-identity-federation)
+   for this repository (keyless - no JSON key is stored in GitHub).
+4. Add repository **secrets** `GCP_WORKLOAD_IDENTITY_PROVIDER` and
+   `GCP_SERVICE_ACCOUNT`, and repository **variables** `GCP_PROJECT_ID` and
+   `GCP_REGION`.
+
+The deploy step sets values that matter for Shiny specifically: low
+concurrency, because one R process is single-threaded; a long request timeout,
+because Shiny holds a websocket open for the session; session affinity; and
+startup CPU boost to shorten cold starts.
+
 ## Known limitations
 
 - **Side to move** can't be read from a still image - the UI asks for it.

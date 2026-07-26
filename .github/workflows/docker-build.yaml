@@ -1,0 +1,79 @@
+# Build the deployment image on every change, without deploying it.
+#
+# This is the real test of the Dockerfile: it proves the engine installs, the
+# system libraries satisfy magick/rsvg/V8, the package installs cleanly and the
+# piece-set templates bake in. Keeping it separate from deployment means the
+# image is validated even before any cloud account is configured.
+
+name: docker-build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: chessvision:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Boot the container and confirm it actually serves the app, rather than
+      # trusting that a successful build implies a working image.
+      - name: Smoke test the container
+        run: |
+          docker run -d --name chessvision -p 8080:8080 chessvision:ci
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null http://localhost:8080; then
+              echo "app responded after ${i}s"
+              READY=1
+              break
+            fi
+            sleep 1
+          done
+          if [ -z "${READY:-}" ]; then
+            echo "app did not respond in time; container logs:"
+            docker logs chessvision
+            exit 1
+          fi
+          # The page must actually be the Shiny app, not an error page.
+          curl -s http://localhost:8080 | grep -q "Chess Screenshot" \
+            || { echo "unexpected page content"; docker logs chessvision; exit 1; }
+          echo "container smoke test passed"
+
+      - name: Verify engine and piece sets inside the image
+        run: |
+          docker exec chessvision Rscript -e "
+            library(chessvision);
+            engine <- chessvision:::find_local_engine();
+            stopifnot(!is.null(engine));
+            cat('engine:', engine, '\n');
+            sets <- chessvision:::available_piece_sets();
+            cat('piece sets:', length(sets), '\n');
+            stopifnot(length(sets) >= 1);
+            res <- chessvision:::best_move_uci(
+              'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+              movetime_ms = 500);
+            cat('engine returned:', res\$move, '\n');
+            stopifnot(nzchar(res\$move))
+          "
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f chessvision || true

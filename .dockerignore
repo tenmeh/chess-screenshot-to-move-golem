@@ -1,0 +1,18 @@
+# Keep the build context small and reproducible.
+.git
+.github
+.Rproj.user
+*.Rproj
+renv/library
+renv/staging
+renv/local
+renv/cellar
+renv/sandbox
+.Rhistory
+.RData
+.Ruserdata
+dev
+data-raw
+check
+*.tar.gz
+*.Rcheck

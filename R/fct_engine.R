@@ -20,10 +20,25 @@ stockfish_bin_dir <- function() {
   dir
 }
 
-#' Find a previously-downloaded Stockfish binary in the cache
+#' Find a Stockfish binary already present on this machine
+#'
+#' Prefers one installed system-wide (which is how the container image and most
+#' Linux setups provide it, e.g. `apt install stockfish`) before looking in the
+#' download cache. This keeps deployments from fetching a binary at runtime,
+#' which a read-only or ephemeral filesystem would not survive.
 #'
 #' @return The path to the binary, or `NULL` if none is present.
 find_local_engine <- function() {
+  # Respect an explicit override first, then anything on PATH.
+  configured <- Sys.getenv("CHESSVISION_STOCKFISH", "")
+  if (nzchar(configured) && file.exists(configured)) {
+    return(configured)
+  }
+  on_path <- Sys.which("stockfish")
+  if (nzchar(on_path)) {
+    return(unname(on_path))
+  }
+
   dir <- stockfish_bin_dir()
   files <- list.files(dir, recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
   files <- files[grepl("stockfish", basename(files), ignore.case = TRUE)]
