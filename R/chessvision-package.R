@@ -17,7 +17,7 @@
 #' @importFrom processx process
 #' @importFrom jsonlite fromJSON base64_dec
 #' @importFrom V8 v8
-#' @importFrom stats median var
+#' @importFrom stats median var setNames
 #' @importFrom tools R_user_dir
 #' @importFrom utils download.file unzip untar packageVersion head
 #' @importFrom golem add_resource_path with_golem_options

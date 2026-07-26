@@ -189,9 +189,14 @@ engine_session_poll <- function(sess) {
 
 #' Null-coalescing helper
 #'
+#' Base R gained `%||%` in 4.4.0; this local copy keeps the package working on
+#' older releases. Deliberately not documented into an .Rd file: roxygen
+#' derives the topic name from the operator, which is not a legal \\name.
+#'
 #' @param a A value that may be `NULL`.
 #' @param b Fallback used when `a` is `NULL`.
 #' @return `a` unless it is `NULL`, in which case `b`.
+#' @noRd
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
 #' Format an engine score for display
