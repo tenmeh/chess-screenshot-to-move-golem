@@ -9,13 +9,13 @@ renv/local
 renv/cellar
 renv/sandbox
 
-# renv is for local dev reproducibility only. The image installs its R
-# dependencies explicitly via install2.r in the Dockerfile; .Rprofile would
-# auto-activate renv on every Rscript call during the build and reset
-# .libPaths() away from the site-library that R CMD INSTALL just populated,
-# breaking `library(chessvision)` in the very next RUN step.
+# renv.lock IS used by the Dockerfile (renv::restore() as a one-shot,
+# build-time installer - see the comment there), so it is deliberately not
+# excluded here. .Rprofile and renv/activate.R are what auto-activate renv as
+# a live project on every Rscript call; the image never does that, so they
+# stay excluded - copying them in would just invite the exact
+# `library(chessvision)` breakage renv's project isolation caused before.
 .Rprofile
-renv.lock
 renv/activate.R
 .Rhistory
 .RData
