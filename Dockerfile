@@ -21,25 +21,36 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libcurl4-openssl-dev \
         libssl-dev \
         libxml2-dev \
+        curl \
         stockfish \
     && rm -rf /var/lib/apt/lists/*
-
-# Runtime R dependencies. Listed explicitly so this layer caches and is not
-# invalidated by every source change.
-RUN install2.r --error --skipinstalled \
-        shiny \
-        golem \
-        magick \
-        rsvg \
-        processx \
-        jsonlite \
-        V8
 
 # Debian installs the engine into /usr/games, which is not on the default PATH
 # of a non-interactive session.
 ENV PATH="/usr/games:${PATH}"
 
 WORKDIR /srv/chessvision
+
+# renv.lock is the single source of truth for R package versions - the same
+# file `renv::snapshot()` maintains for local dev - copied in on its own so
+# this layer only rebuilds when a dependency actually changes, not on every
+# source edit.
+COPY renv.lock renv.lock
+
+# restore() installs the exact locked versions directly into R's normal
+# site-library (not renv's usual project-private renv/library folder, via
+# the explicit `library` argument below). This is deliberate: renv isolates
+# an active project's library and - critically - hides the plain
+# site-library once a project is "activated" but not yet in sync, which is
+# exactly what broke `library(chessvision)` here previously (chessvision
+# itself is installed by a plain R CMD INSTALL below, into that same plain
+# site-library, bypassing renv entirely). Using renv purely as a one-shot,
+# build-time installer sidesteps that: nothing here ever activates renv as a
+# project, so .Rprofile and renv/activate.R are never needed in the image
+# (see .dockerignore) and there is no isolation to fight with at runtime.
+RUN Rscript -e "install.packages('renv', repos = 'https://cloud.r-project.org')" \
+    && Rscript -e "renv::restore(project = '.', library = '/usr/local/lib/R/site-library', prompt = FALSE)"
+
 COPY . .
 
 RUN R CMD INSTALL --no-multiarch --with-keep.source . \
