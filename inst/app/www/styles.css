@@ -130,3 +130,93 @@
   font-weight: 600;
   font-size: 0.8rem;
 }
+
+/* ---- live game tracking ---- */
+.cv-hidden-video {
+  display: none;
+}
+.cv-capture-preview {
+  width: 100%;
+  max-width: 460px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #f4f4f4;
+  cursor: crosshair;
+  display: block;
+  margin-top: 0.6rem;
+}
+.cv-capture-hint {
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+}
+.cv-live-paste {
+  margin-top: 0.75rem;
+  padding: 0.9rem;
+  font-size: 0.85rem;
+}
+.cv-live-summary {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.cv-eval-graph {
+  width: 100%;
+  max-width: 100%;
+  height: 110px;
+  margin: 0.5rem 0;
+  display: block;
+  border-bottom: 1px solid #eee;
+}
+.cv-graph-hit {
+  cursor: pointer;
+}
+.cv-graph-hit:hover {
+  fill: rgba(43, 108, 176, 0.12);
+}
+.cv-live-moves {
+  font-size: 0.9rem;
+  line-height: 1.9;
+  max-height: 9rem;
+  overflow-y: auto;
+}
+.cv-move-no {
+  color: #888;
+  font-size: 0.8rem;
+  margin-left: 0.35rem;
+}
+.cv-move {
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+  text-decoration: none;
+  color: #222;
+  font-weight: 600;
+}
+.cv-move:hover {
+  background: #e6eef7;
+  text-decoration: none;
+}
+.cv-q-inaccuracy {
+  color: #b7791f;
+}
+.cv-q-mistake {
+  color: #dd6b20;
+}
+.cv-q-blunder {
+  color: #c53030;
+}
+.cv-q-blunder::after {
+  content: "??";
+  font-size: 0.75em;
+  vertical-align: super;
+}
+.cv-q-mistake::after {
+  content: "?";
+  font-size: 0.75em;
+  vertical-align: super;
+}
+a.cv-turning {
+  text-decoration: none;
+  color: inherit;
+}
+a.cv-turning:hover {
+  background: #fdf3f3;
+}
