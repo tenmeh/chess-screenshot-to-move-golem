@@ -1,16 +1,20 @@
 # Interactive analysis board: explore positions with live engine evaluation.
+# Rendered directly beneath the analyze controls, so a recognized screenshot
+# lands here automatically and can be explored (or corrected) in place.
 
-#' Board tab UI
+#' Interactive board UI
 #'
 #' @param id The module id.
-#' @return A Shiny UI tag list for the interactive board tab.
+#' @return A Shiny UI tag list for the interactive analysis board.
 mod_board_ui <- function(id) {
   ns <- NS(id)
   tagList(
+    tags$h4("Analysis board"),
     p(
-      "Drag pieces to explore. The engine re-evaluates continuously and the ",
-      "bar, score and top lines update as the search deepens. Recognized ",
-      "screenshots can be sent here from the Analyze tab."
+      "A recognized screenshot loads here automatically - drag pieces to ",
+      "explore, or to correct a misread square. The engine re-evaluates ",
+      "continuously and the bar, score and top lines update as the search ",
+      "deepens."
     ),
     fluidRow(
       column(
@@ -65,7 +69,7 @@ mod_board_ui <- function(id) {
   )
 }
 
-#' Board tab server
+#' Interactive board server
 #'
 #' Owns a persistent Stockfish process for the session and keeps the eval bar,
 #' score, depth and principal variations in sync with the board position.
@@ -73,8 +77,10 @@ mod_board_ui <- function(id) {
 #' @param id The module id.
 #' @param chess_ctx A chess.js V8 context from [new_chess_context()], used to
 #'   convert engine moves to SAN.
-#' @param incoming A reactive returning a FEN to load into the board (e.g. a
-#'   position recognized on the Analyze tab), or `NULL`.
+#' @param incoming A reactive returning a position to load into the board -
+#'   either a bare FEN string, or a list with `fen`, an optional `orientation`
+#'   ("white"/"black") and an optional `nonce` to force a reload of an
+#'   unchanged FEN - or `NULL`.
 #' @return Called for its side effects; wires up the board reactives.
 mod_board_server <- function(id, chess_ctx, incoming = reactive(NULL)) {
   moduleServer(id, function(input, output, session) {
@@ -135,14 +141,21 @@ mod_board_server <- function(id, chess_ctx, incoming = reactive(NULL)) {
       snap(NULL)
     })
 
-    # Load an externally supplied position (from the Analyze tab).
+    # Load an externally supplied position (a screenshot just recognized
+    # above). Accepts either a bare FEN or a list carrying the orientation to
+    # show it from - a board read from Black's perspective should stay that
+    # way rather than silently flipping - plus a nonce, so re-analysing the
+    # same screenshot reloads the board instead of being skipped as "no
+    # change".
     observeEvent(incoming(), {
-      fen <- incoming()
+      msg <- incoming()
+      req(!is.null(msg))
+      fen <- if (is.list(msg)) msg$fen else msg
       req(!is.null(fen))
       session$sendCustomMessage("chessvision-board-set", list(
         container = board_id,
         fen = fen,
-        orientation = "white"
+        orientation = if (is.list(msg) && !is.null(msg$orientation)) msg$orientation else "white"
       ))
     })
 

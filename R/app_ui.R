@@ -10,8 +10,16 @@ app_ui <- function(request) {
       titlePanel("Chess Screenshot -> Best Move"),
       tabsetPanel(
         id = "main_tabs",
-        tabPanel("Analyze position", value = "analyze", mod_analyze_ui("analyze")),
-        tabPanel("Board", value = "board", mod_board_ui("board")),
+        # The board lives on the same tab as the screenshot it came from:
+        # recognizing a position and then exploring it is one task, and
+        # splitting it across tabs meant a round trip (and a button) between
+        # reading a board and doing anything with it.
+        tabPanel(
+          "Analyze position",
+          value = "analyze",
+          mod_analyze_ui("analyze"),
+          mod_board_ui("board")
+        ),
         tabPanel("Piece sets & calibration", value = "calibrate", mod_calibrate_ui("calibrate"))
       )
     )

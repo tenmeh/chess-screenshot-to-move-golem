@@ -2,7 +2,7 @@
 % Please edit documentation in R/mod_board.R
 \name{mod_board_server}
 \alias{mod_board_server}
-\title{Board tab server}
+\title{Interactive board server}
 \usage{
 mod_board_server(id, chess_ctx, incoming = reactive(NULL))
 }
@@ -12,8 +12,10 @@ mod_board_server(id, chess_ctx, incoming = reactive(NULL))
 \item{chess_ctx}{A chess.js V8 context from \code{\link[=new_chess_context]{new_chess_context()}}, used to
 convert engine moves to SAN.}
 
-\item{incoming}{A reactive returning a FEN to load into the board (e.g. a
-position recognized on the Analyze tab), or \code{NULL}.}
+\item{incoming}{A reactive returning a position to load into the board -
+either a bare FEN string, or a list with \code{fen}, an optional \code{orientation}
+("white"/"black") and an optional \code{nonce} to force a reload of an
+unchanged FEN - or \code{NULL}.}
 }
 \value{
 Called for its side effects; wires up the board reactives.
