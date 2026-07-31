@@ -37,6 +37,7 @@ golem_add_external_resources <- function() {
     tags$script(src = "chessjs/chess.js"),
     tags$script(HTML("window.ChessCtor = module.exports.Chess;")),
     tags$script(src = paste0("www/paste.js", v)),
+    tags$script(src = paste0("www/capture.js", v)),
     tags$script(src = paste0("www/board.js", v))
   )
 }

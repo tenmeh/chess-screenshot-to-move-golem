@@ -152,6 +152,21 @@ mod_board_server <- function(id, chess_ctx, incoming = reactive(NULL)) {
       req(!is.null(msg))
       fen <- if (is.list(msg)) msg$fen else msg
       req(!is.null(fen))
+
+      # A live tracker sends the move it inferred as well as the position. When
+      # the board is genuinely standing where that move was played from, play
+      # it: the piece slides, and the browser's own history stays in step so
+      # Undo and the move list keep working. Otherwise fall back to setting the
+      # position outright.
+      ucis <- if (is.list(msg)) msg$ucis %||% msg$uci else NULL
+      if (!is.null(ucis) && !is.null(msg$prev_fen) &&
+        same_position(isolate(current_fen()), msg$prev_fen)) {
+        session$sendCustomMessage("chessvision-board-move", list(
+          container = board_id, ucis = as.list(ucis)
+        ))
+        return()
+      }
+
       session$sendCustomMessage("chessvision-board-set", list(
         container = board_id,
         fen = fen,

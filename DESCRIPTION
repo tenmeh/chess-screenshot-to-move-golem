@@ -1,6 +1,6 @@
 Package: chessvision
 Title: Chess Board Screenshot to Best Move
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: person("tenmeh", email = "81738153+tenmeh@users.noreply.github.com", role = c("aut", "cre"))
 Description: A golem Shiny app that reads a chess board screenshot (drag-drop
     or clipboard paste), recognizes the position with template matching, and

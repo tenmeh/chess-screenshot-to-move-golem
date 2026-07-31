@@ -271,19 +271,29 @@
     redrawArrows(msg.container);
   });
 
+  // Accepts one move or several. The live tracker sends several when it had to
+  // infer a ply it never saw on screen; playing them in turn keeps this board's
+  // own history complete, which a jump to the final position would not.
   Shiny.addCustomMessageHandler("chessvision-board-move", function (msg) {
     var st = boards[msg.container];
     if (!st) return;
-    var uci = msg.uci;
-    var mv = { from: uci.slice(0, 2), to: uci.slice(2, 4) };
-    if (uci.length > 4) mv.promotion = uci[4];
-    try {
-      st.game.move(mv);
-      st.board.position(st.game.fen());
-      sendState(msg.container);
-    } catch (e) {
-      /* ignore an illegal suggestion */
-    }
+    var list = msg.ucis || msg.uci;
+    if (!Array.isArray(list)) list = [list];
+    var played = 0;
+    list.forEach(function (uci) {
+      if (!uci) return;
+      var mv = { from: uci.slice(0, 2), to: uci.slice(2, 4) };
+      if (uci.length > 4) mv.promotion = uci[4];
+      try {
+        st.game.move(mv);
+        played++;
+      } catch (e) {
+        /* ignore an illegal suggestion */
+      }
+    });
+    if (!played) return;
+    st.board.position(st.game.fen());
+    sendState(msg.container);
   });
 
   Shiny.addCustomMessageHandler("chessvision-board-arrows", function (msg) {

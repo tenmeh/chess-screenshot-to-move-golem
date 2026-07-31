@@ -18,7 +18,9 @@ app_ui <- function(request) {
           "Analyze position",
           value = "analyze",
           mod_analyze_ui("analyze"),
-          mod_board_ui("board")
+          mod_board_ui("board"),
+          tags$hr(),
+          mod_live_ui("live")
         ),
         tabPanel("Piece sets & calibration", value = "calibrate", mod_calibrate_ui("calibrate"))
       )

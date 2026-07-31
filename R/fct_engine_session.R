@@ -103,6 +103,63 @@ engine_session_analyse <- function(sess, fen) {
   invisible(TRUE)
 }
 
+#' Evaluate one position on a persistent engine, waiting for the result
+#'
+#' The counterpart to [engine_session_analyse()]: a bounded, blocking search
+#' for callers that need a number now rather than a stream of improving ones.
+#' Scoring the moves of a live game needs exactly that - one figure per
+#' position, cheap enough to run as the game goes on.
+#'
+#' Give this its own session rather than sharing the board's. The board runs
+#' `go infinite`, and interrupting it here would restart its search and reset
+#' its depth on every move of the game.
+#'
+#' @param sess An engine session from [engine_session_start()].
+#' @param fen The position to evaluate.
+#' @param movetime_ms Thinking time.
+#' @return A list with `cp` (centipawns from the side to move's point of view,
+#'   mate scores folded onto the same scale), `best` (best move in UCI) and
+#'   `depth`, or `NULL` if no session or no result.
+engine_session_eval <- function(sess, fen, movetime_ms = 300L) {
+  if (is.null(sess) || is.null(sess$process) || !sess$process$is_alive()) {
+    return(NULL)
+  }
+  p <- sess$process
+
+  # Clear anything left over, so a line from the previous position cannot be
+  # read as a result for this one.
+  p$write_input("stop\n")
+  p$write_input("isready\n")
+  deadline <- Sys.time() + 2
+  repeat {
+    p$poll_io(50)
+    out <- p$read_output_lines()
+    if (any(startsWith(out, "readyok")) || Sys.time() > deadline) break
+  }
+
+  p$write_input(sprintf("position fen %s\n", fen))
+  p$write_input(sprintf("go movetime %d\n", as.integer(movetime_ms)))
+
+  best <- NULL
+  deadline <- Sys.time() + (movetime_ms / 1000) + 10
+  repeat {
+    p$poll_io(50)
+    lines <- p$read_output_lines()
+    for (line in lines) {
+      if (startsWith(line, "info")) {
+        rec <- parse_info_line(line)
+        if (!is.null(rec) && !is.na(rec$depth)) best <- rec
+      }
+    }
+    if (any(startsWith(lines, "bestmove"))) break
+    if (Sys.time() > deadline) break
+  }
+  if (is.null(best)) {
+    return(NULL)
+  }
+  list(cp = score_to_cp(best$cp, best$mate), best = best$first, depth = best$depth)
+}
+
 #' Parse one UCI info line into a principal-variation record
 #'
 #' @param line A UCI "info ..." line.
