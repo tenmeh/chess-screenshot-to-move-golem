@@ -2,7 +2,7 @@
 % Please edit documentation in R/mod_board.R
 \name{mod_board_ui}
 \alias{mod_board_ui}
-\title{Board tab UI}
+\title{Interactive board UI}
 \usage{
 mod_board_ui(id)
 }
@@ -10,8 +10,8 @@ mod_board_ui(id)
 \item{id}{The module id.}
 }
 \value{
-A Shiny UI tag list for the interactive board tab.
+A Shiny UI tag list for the interactive analysis board.
 }
 \description{
-Board tab UI
+Interactive board UI
 }

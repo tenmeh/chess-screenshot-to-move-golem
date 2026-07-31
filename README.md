@@ -121,8 +121,8 @@ them on every push and pull request to `main`.
 ```
 R/
   app_ui.R, app_server.R, run_app.R  # golem entry points
-  mod_analyze.R                      # Analyze tab (paste -> FEN -> best move)
-  mod_board.R                        # Board tab (interactive + live eval)
+  mod_analyze.R                      # Analyze tab: paste -> FEN (+ the board below)
+  mod_board.R                        # interactive board + live eval, blunder radar
   mod_calibrate.R                    # Calibrate tab (teach a new piece set)
   fct_detect.R                       # screenshot -> 64 squares + orientation
   fct_recognize.R                    # template matching
