@@ -5,6 +5,53 @@
 # apt rather than a runtime download, and every piece-set template library is
 # built during the image build so a cold start is immediately ready.
 
+# ---------------------------------------------------------------------------
+# Stage 1: lc0, the engine behind the Blunder Radar's human model.
+#
+# There is no official Linux binary for lc0 - the project's releases are
+# Windows and Android only, and Debian's `leela-zero` package is the unrelated
+# Go engine - so it has to be built from source. Only the finished binary is
+# copied into the runtime image, leaving the ~1 GB of build toolchain behind.
+# ---------------------------------------------------------------------------
+FROM debian:bookworm-slim AS lc0build
+
+ARG LC0_VERSION=v0.32.1
+
+RUN apt-get update -o Acquire::Retries=5 \
+    && apt-get install -y --no-install-recommends -o Acquire::Retries=5 \
+        build-essential ca-certificates git meson ninja-build \
+        pkg-config python3 zlib1g-dev libopenblas-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --recurse-submodules --depth 1 --branch "${LC0_VERSION}" \
+        https://github.com/LeelaChessZero/lc0.git /src
+
+WORKDIR /src
+
+# CPU/BLAS only. ispc, onnx, cuda and opencl are switched off: they need
+# toolchains or hardware this image will never have. That costs nothing here
+# because the radar runs the network at `go nodes 1` - a single forward pass
+# per query, where raw throughput is irrelevant.
+RUN meson setup build --buildtype=release \
+        -Dgtest=false -Dispc=false -Donnx=false \
+        -Dblas=true -Dopenblas=true \
+        -Ddnnl=false -Dopencl=false -Dcudnn=false \
+    && ninja -C build lc0 \
+    && ./build/lc0 --help > /dev/null
+
+# Maia weights, fetched here so the runtime stage needs no network access.
+# maia-1100/1500/1900 are the three networks the rating slider exposes.
+#
+# --chmod=644 is required, not cosmetic: ADD from a URL leaves files 0600
+# (root-only), so lc0 could not read them if the container runs as a
+# non-root uid, which Cloud Run may do.
+ADD --chmod=644 https://github.com/CSSLab/maia-chess/raw/master/maia_weights/maia-1100.pb.gz /weights/maia-1100.pb.gz
+ADD --chmod=644 https://github.com/CSSLab/maia-chess/raw/master/maia_weights/maia-1500.pb.gz /weights/maia-1500.pb.gz
+ADD --chmod=644 https://github.com/CSSLab/maia-chess/raw/master/maia_weights/maia-1900.pb.gz /weights/maia-1900.pb.gz
+
+# ---------------------------------------------------------------------------
+# Stage 2: the app.
+# ---------------------------------------------------------------------------
 FROM rocker/r-ver:4.6.1
 
 # System libraries:
@@ -14,7 +61,10 @@ FROM rocker/r-ver:4.6.1
 #   libnode        - the V8 package, which runs chess.js for rules/SAN
 #   stockfish      - the engine; installing it here avoids fetching a binary
 #                    onto a filesystem that may be read-only
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Acquire::Retries guards against transient mirror failures, which otherwise
+# fail the whole build over one unreachable .deb out of ~150.
+RUN apt-get update -o Acquire::Retries=5 \
+    && apt-get install -y --no-install-recommends -o Acquire::Retries=5 \
         libmagick++-dev \
         librsvg2-dev \
         libnode-dev \
@@ -23,11 +73,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libxml2-dev \
         curl \
         stockfish \
+        libopenblas0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Debian installs the engine into /usr/games, which is not on the default PATH
 # of a non-interactive session.
 ENV PATH="/usr/games:${PATH}"
+
+# lc0 and the Maia networks, from the build stage above. CHESSVISION_MAIA_DIR
+# pins where maia_dir() looks, rather than letting it resolve under the user
+# cache - that depends on HOME, which is not dependable in a container that
+# may run as an arbitrary uid.
+COPY --from=lc0build /src/build/lc0 /usr/local/bin/lc0
+COPY --from=lc0build /weights/ /opt/maia/
+ENV CHESSVISION_MAIA_DIR=/opt/maia
 
 WORKDIR /srv/chessvision
 
@@ -66,12 +125,29 @@ RUN Rscript -e "library(chessvision); \
       message(sprintf('piece sets baked in: %d', sum(ready)))"
 
 # Fail the build rather than ship an image whose engine or art is missing.
+# The human model is checked by actually running it: lc0 can be present and
+# still be unusable (wrong BLAS, unreadable weights), and a Blunder Radar that
+# silently degrades to "human model unavailable" in production is exactly the
+# failure this stage exists to catch. Asserting on a real policy query - the
+# probabilities must be non-empty and sum to 1 - is what makes it meaningful.
 RUN Rscript -e "library(chessvision); \
       stopifnot(!is.null(chessvision:::find_local_engine())); \
       sets <- chessvision:::available_piece_sets(); \
       message(sprintf('engine: %s', chessvision:::find_local_engine())); \
       message(sprintf('piece sets available: %d', length(sets))); \
-      stopifnot(length(sets) >= 1)"
+      stopifnot(length(sets) >= 1); \
+      message(sprintf('lc0: %s', chessvision:::find_lc0())); \
+      stopifnot(!is.null(chessvision:::find_lc0())); \
+      for (r in chessvision:::MAIA_RATINGS) \
+        stopifnot(chessvision:::human_model_available(r)); \
+      sess <- chessvision:::maia_session_start(1500); \
+      stopifnot(!is.null(sess)); \
+      pol <- chessvision:::human_move_probabilities(sess, \
+        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'); \
+      chessvision:::maia_session_stop(sess); \
+      message(sprintf('maia-1500 policy: %d moves, top %s at %.1f%%', \
+        nrow(pol), pol\$move[1], 100 * pol\$prob[1])); \
+      stopifnot(nrow(pol) == 20, abs(sum(pol\$prob) - 1) < 0.02)"
 
 # Cloud Run (and most hosts) inject the port to listen on.
 ENV PORT=8080
