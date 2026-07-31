@@ -66,7 +66,10 @@ mod_live_ui <- function(id) {
         7,
         fluidRow(
           column(6, radioButtons(
-            ns("anchor"), "Start the game from",
+            # Named for the button it configures: without a game running, the
+            # first position read is adopted either way, and a label reading
+            # "start the game from" would promise otherwise.
+            ns("anchor"), "\"New game\" starts from",
             c("The standard starting position" = "start", "Whatever I first read" = "frame"),
             selected = "start"
           )),
@@ -334,8 +337,9 @@ mod_live_server <- function(id, chess_ctx) {
           tags$div(
             class = "cv-capture-hint",
             "Share the window with the game in it, then drag on the preview to ",
-            "mark the board. Keep this window visible - a browser slows timers ",
-            "in a hidden tab."
+            "mark the board - a little outside it is fine, and better than ",
+            "cutting into it. Keep this window visible: browsers slow timers ",
+            "down in a hidden tab."
           )
         }
       )

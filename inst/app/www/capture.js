@@ -32,7 +32,20 @@
   var cap = null; // active capture, or null
 
   var WORK = 96; // frame-comparison resolution, per side
-  var SEND_MAX = 640; // longest side of the image actually sent to R
+  var SEND_MAX = 720; // longest side of the image actually sent to R
+  // Nobody drags a rectangle onto a board edge to the pixel, so the marked
+  // region is grown outward before use: cutting into the board shifts the 8x8
+  // grid and recognition returns confident nonsense, whereas a margin of
+  // background is trimmed back off by autocrop_board() on the server.
+  //
+  // The margin has to stay modest, though. Measured against a live capture,
+  // recognition holds for margins up to about 5% of the board and breaks past
+  // it - with too much background the edge detection stops finding the board
+  // at all. So this pads by a little, not a lot, and the region still wants
+  // marking roughly on the board edge.
+  var PAD = 0.02; // ...by this share of the region per side
+  var PAD_MIN = 4; // ...never fewer than this many pixels
+  var PAD_MAX = 16; // ...and never more, to stay clear of that cliff
   // Deliberately low: a false positive here just costs one recognition, which
   // the server then discards. A false negative loses a move.
   var CHANGED = 0.8; // mean per-pixel luma delta counting as "something moved"
@@ -72,11 +85,34 @@
   // ---- the region --------------------------------------------------------
 
   // Region is stored in the video's own pixel coordinates, so it stays correct
-  // however the preview canvas is scaled on screen.
+  // however the preview canvas is scaled on screen. What is marked is stored
+  // as marked - the padding is applied here, at the point of use, so the
+  // rectangle drawn back onto the preview still matches what the user drew.
+  function clampPad(size) {
+    return Math.min(PAD_MAX, Math.max(PAD_MIN, size * PAD));
+  }
+
   function regionOrWhole() {
     var v = cap.video;
-    if (cap.region) return cap.region;
-    return { x: 0, y: 0, w: v.videoWidth, h: v.videoHeight };
+    if (!cap.region) return { x: 0, y: 0, w: v.videoWidth, h: v.videoHeight };
+    var r = cap.region;
+    var w = r.w + 2 * clampPad(r.w);
+    var h = r.h + 2 * clampPad(r.h);
+
+    // A board is square, so the region is squared off around its centre. Then
+    // everything is rounded to whole pixels: a fractional source rectangle
+    // makes the browser resample, which softens the boundaries between squares
+    // and was enough on its own to turn a readable board into an unreadable
+    // one. Whole numbers here mean the frame is copied, not interpolated.
+    var side = Math.round(Math.min(Math.max(w, h), v.videoWidth, v.videoHeight));
+    var x = Math.round(r.x + r.w / 2 - side / 2);
+    var y = Math.round(r.y + r.h / 2 - side / 2);
+    return {
+      x: Math.max(0, Math.min(x, v.videoWidth - side)),
+      y: Math.max(0, Math.min(y, v.videoHeight - side)),
+      w: side,
+      h: side
+    };
   }
 
   function drawPreview() {

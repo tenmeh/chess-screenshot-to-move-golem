@@ -33,8 +33,12 @@
   screen, window or tab, and the board marked once by dragging over a still
   frame. Frames are compared in the browser and only a settled, changed picture
   is sent, so the cost is roughly one recognition per move rather than one per
-  tick. It needs a current browser over HTTPS or localhost, and the app's
-  window has to stay visible, because browsers throttle timers in a hidden tab.
+  tick. Mark the region roughly on the board's edge: it is grown outward a
+  little before use, since slicing into the board is fatal to recognition,
+  but a very loose region is no good either - past a margin of about 5% the
+  edge detection stops finding the board. It needs a current browser over
+  HTTPS or localhost, and the app's window has to stay visible, because
+  browsers throttle timers in a hidden tab.
   A web page cannot read the screen unprompted, or watch the clipboard while
   another window has focus; neither is pretended at, and pasting after each
   move is a first-class alternative rather than a fallback.
