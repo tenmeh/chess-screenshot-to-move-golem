@@ -61,10 +61,23 @@
 
   function onDrop(cid) {
     return function (source, target) {
+      var st = boards[cid];
+
+      // Pressing and releasing on the same square is a tap, not a drag - but
+      // chessboard.js has already claimed the mousedown, so this callback is
+      // the only place it can be seen. Routing it here rather than waiting for
+      // a `click` is the whole trick: on a piece, chessboard.js starts a drag
+      // the moment you press, and the click that follows arrives after this.
+      if (target === source) {
+        handleTap(cid, source);
+        // A click still fires after this mouseup; without swallowing it the
+        // tap would immediately be undone by the delegated handler below.
+        st.suppressClick = true;
+        return "snapback";
+      }
+
       clearSelection(cid);
-      // A drag is a completed interaction; the click that follows it must not
-      // be read as the first tap of a tap-to-move.
-      boards[cid].suppressClick = true;
+      st.suppressClick = true;
       if (!tryMove(cid, source, target)) return "snapback";
     };
   }
@@ -122,42 +135,53 @@
     return p && p.color === g.turn();
   }
 
+  // What a tap on a square means. Reached two ways, because chessboard.js only
+  // claims presses that land on a piece:
+  //   - via onDrop(source === target), for a tap on one of your own pieces;
+  //   - via the delegated click below, for empty squares and enemy pieces,
+  //     where no drag was ever started.
+  function handleTap(cid, square) {
+    var st = boards[cid];
+    if (!st) return;
+
+    var over =
+      typeof st.game.isGameOver === "function"
+        ? st.game.isGameOver()
+        : st.game.game_over();
+    if (over) return;
+
+    if (!st.selected) {
+      if (ownPieceAt(cid, square)) selectSquare(cid, square);
+      return;
+    }
+    if (st.selected === square) {
+      clearSelection(cid); // tapping it again puts it back down
+      return;
+    }
+    if (tryMove(cid, st.selected, square)) {
+      clearSelection(cid);
+      st.board.position(st.game.fen());
+      return;
+    }
+    // Not a legal destination: treat it as picking a different piece, or as a
+    // miss.
+    if (ownPieceAt(cid, square)) selectSquare(cid, square);
+    else clearSelection(cid);
+  }
+
   function onBoardClick(cid) {
     return function (ev) {
       var st = boards[cid];
       if (!st) return;
-      // Swallow exactly one click after a drag finishes.
+      // Swallow exactly one click after chessboard.js has already dealt with
+      // this press as a drag or a tap.
       if (st.suppressClick) {
         st.suppressClick = false;
         return;
       }
       var cell = ev.target.closest("[data-square]");
       if (!cell) return;
-      var square = cell.getAttribute("data-square");
-
-      var over =
-        typeof st.game.isGameOver === "function"
-          ? st.game.isGameOver()
-          : st.game.game_over();
-      if (over) return;
-
-      if (!st.selected) {
-        if (ownPieceAt(cid, square)) selectSquare(cid, square);
-        return;
-      }
-      if (st.selected === square) {
-        clearSelection(cid); // tapping it again puts it back down
-        return;
-      }
-      if (tryMove(cid, st.selected, square)) {
-        clearSelection(cid);
-        st.board.position(st.game.fen());
-        return;
-      }
-      // Not a legal destination: treat it as picking a different piece, or
-      // as a miss.
-      if (ownPieceAt(cid, square)) selectSquare(cid, square);
-      else clearSelection(cid);
+      handleTap(cid, cell.getAttribute("data-square"));
     };
   }
 

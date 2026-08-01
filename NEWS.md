@@ -1,3 +1,15 @@
+# chessvision 1.0.2
+
+## Bug fixes
+
+* **Tap to move actually works.** It was shipped in 1.0.1 but never functioned
+  on a real click. chessboard.js claims the `mousedown` on a piece to begin a
+  drag, so pressing and releasing on one square arrives as a drag that was
+  dropped where it started - and the `click` that follows was being swallowed
+  as the tail of that drag. Taps on your own pieces are now recognised through
+  chessboard.js's own drop callback instead of waiting for a click that comes
+  too late. Dragging is unaffected.
+
 # chessvision 1.0.1
 
 ## Bug fixes
