@@ -6,28 +6,48 @@
 #' @return A Shiny UI tag list for the analyze tab.
 mod_analyze_ui <- function(id) {
   ns <- NS(id)
-  tagList(
-    p(
-      "Drop or paste a board screenshot. The piece set and board orientation ",
-      "are detected automatically - download more sets in the Piece sets tab ",
-      "to cover every Lichess theme with zero calibration."
+  tags$section(
+    class = "cv-card",
+    cv_section_title(
+      "Read a position",
+      paste(
+        "Drop or paste a screenshot of a board. The piece set and orientation",
+        "are detected automatically - grab more sets from the Piece sets tab",
+        "to cover every Lichess theme without calibrating anything."
+      ),
+      step = "1"
     ),
-    image_input_ui("img", ns),
-    fluidRow(
-      column(4, radioButtons(ns("turn"), "Side to move", c("White" = "w", "Black" = "b"))),
-      column(4, radioButtons(
-        ns("orientation"), "Board orientation",
-        c("Auto-detect" = "auto", "White on bottom" = "white", "Black on bottom" = "black")
-      )),
-      column(4, checkboxInput(ns("autocrop"), "Auto-crop to board", value = TRUE))
+    div(
+      class = "cv-intake",
+      div(class = "cv-file", image_input_ui("img", ns)),
+      div(
+        class = "cv-options cv-choices",
+        radioButtons(ns("turn"), "Side to move", c("White" = "w", "Black" = "b"), inline = TRUE),
+        radioButtons(
+          ns("orientation"), "Orientation",
+          c("Auto" = "auto", "White at bottom" = "white", "Black at bottom" = "black"),
+          inline = TRUE
+        ),
+        checkboxInput(ns("autocrop"), "Auto-crop to the board", value = TRUE)
+      )
     ),
-    actionButton(ns("analyze"), "Analyze", class = "btn-primary"),
-    tags$hr(),
-    fluidRow(
-      column(5, div(class = "board-preview", h5("Input screenshot"), imageOutput(ns("input_preview"), height = "auto"))),
-      column(7, uiOutput(ns("result")))
+    div(
+      class = "cv-actions",
+      actionButton(ns("analyze"), "Analyse position", class = "btn-primary btn-lg")
     ),
-    tags$hr()
+    div(
+      class = "cv-readout",
+      div(
+        class = "cv-readout-shot",
+        div(class = "cv-panel-label", "Screenshot"),
+        div(class = "board-preview", imageOutput(ns("input_preview"), height = "auto"))
+      ),
+      div(
+        class = "cv-readout-result",
+        div(class = "cv-panel-label", "What was read"),
+        uiOutput(ns("result"))
+      )
+    )
   )
 }
 

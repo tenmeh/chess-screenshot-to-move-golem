@@ -11,6 +11,7 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 Imports:
+    bslib,
     shiny,
     golem,
     magick,

@@ -8,17 +8,21 @@
 #' @return A Shiny UI tag list for the interactive analysis board.
 mod_board_ui <- function(id) {
   ns <- NS(id)
-  tagList(
-    tags$h4("Analysis board"),
-    p(
-      "A recognized screenshot loads here automatically - drag pieces to ",
-      "explore, or to correct a misread square. The engine re-evaluates ",
-      "continuously and the bar, score and top lines update as the search ",
-      "deepens."
+  tags$section(
+    class = "cv-card cv-board-card",
+    cv_section_title(
+      "Analysis board",
+      paste(
+        "A recognised screenshot lands here automatically - drag pieces to",
+        "explore, or to fix a misread square. The engine re-evaluates",
+        "continuously as the search deepens."
+      ),
+      step = "2"
     ),
-    fluidRow(
-      column(
-        7,
+    div(
+      class = "cv-board-layout",
+      div(
+        class = "cv-board-col",
         div(
           class = "cv-board-wrap",
           div(
@@ -32,22 +36,25 @@ mod_board_ui <- function(id) {
           class = "cv-board-controls",
           actionButton(ns("flip"), "Flip"),
           actionButton(ns("undo"), "Undo"),
-          actionButton(ns("reset"), "Start position"),
+          actionButton(ns("reset"), "Start"),
           actionButton(ns("play_best"), "Play best move", class = "btn-primary")
         )
       ),
-      column(
-        5,
-        div(class = "cv-eval-headline", textOutput(ns("score"), inline = TRUE)),
-        div(class = "text-muted", textOutput(ns("depth_line"), inline = TRUE)),
-        tags$hr(),
-        tags$strong("Engine lines"),
-        uiOutput(ns("lines")),
-        tags$hr(),
-        # ---- Blunder Radar ----
+      div(
+        class = "cv-analysis-col",
         div(
-          class = "cv-radar",
-          tags$strong("Blunder radar"),
+          class = "cv-eval-block",
+          div(class = "cv-eval-headline", textOutput(ns("score"), inline = TRUE)),
+          div(class = "cv-eval-sub", textOutput(ns("depth_line"), inline = TRUE))
+        ),
+        div(
+          class = "cv-subpanel",
+          div(class = "cv-panel-label", "Engine lines"),
+          uiOutput(ns("lines"))
+        ),
+        div(
+          class = "cv-subpanel cv-radar",
+          div(class = "cv-panel-label", "Blunder radar"),
           div(
             class = "cv-radar-controls",
             checkboxInput(ns("radar_on"), "Show what a human would play", value = FALSE),
@@ -59,11 +66,16 @@ mod_board_ui <- function(id) {
           ),
           uiOutput(ns("radar"))
         ),
-        tags$hr(),
-        tags$strong("Moves"),
-        div(class = "cv-movelist", textOutput(ns("movelist"))),
-        tags$hr(),
-        tags$code(class = "fen-code", textOutput(ns("fen"), inline = TRUE))
+        div(
+          class = "cv-subpanel",
+          div(class = "cv-panel-label", "Moves"),
+          div(class = "cv-movelist", textOutput(ns("movelist")))
+        ),
+        div(
+          class = "cv-subpanel",
+          div(class = "cv-panel-label", "FEN"),
+          tags$code(class = "fen-code", textOutput(ns("fen"), inline = TRUE))
+        )
       )
     )
   )

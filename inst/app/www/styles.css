@@ -1,46 +1,316 @@
-.paste-zone {
-  border: 2px dashed #8ca2ad;
-  border-radius: 8px;
-  padding: 1.5rem;
-  text-align: center;
-  cursor: pointer;
-  color: #555;
-  background: #f7f9fa;
-  outline: none;
-  transition: border-color 0.15s, background 0.15s;
-}
-.paste-zone:hover {
-  border-color: #5a7a8a;
-}
-.paste-zone:focus {
-  border-color: #2b6cb0;
-  background: #eef5fb;
-}
-.board-preview img {
-  max-width: 100%;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-.fen-code {
-  font-family: monospace;
-  word-break: break-all;
-  background: #f4f4f4;
-  padding: 0.5rem;
-  border-radius: 4px;
-  display: block;
+/* chessvision
+ *
+ * One set of tokens, mirrored from R/app_theme.R, driving both Bootstrap's
+ * widgets and this app's hand-built pieces. Colours key off [data-bs-theme],
+ * which is what bslib's dark-mode switch toggles - keying off
+ * prefers-color-scheme instead would look correct on load and then ignore the
+ * switch.
+ */
+
+:root {
+  --cv-accent: #1f9d61;
+  --cv-accent-soft: rgba(31, 157, 97, 0.12);
+  --cv-accent-line: rgba(31, 157, 97, 0.35);
+
+  --cv-bg: #f6f7f9;
+  --cv-surface: #ffffff;
+  --cv-surface-2: #f2f4f7;
+  --cv-ink: #12151a;
+  --cv-ink-2: #495260;
+  --cv-ink-3: #79828f;
+  --cv-line: rgba(16, 22, 32, 0.09);
+  --cv-line-strong: rgba(16, 22, 32, 0.16);
+
+  --cv-danger: #d1394a;
+  --cv-warn: #c2760c;
+  --cv-info: #2b6cb0;
+
+  --cv-shadow-sm: 0 1px 2px rgba(16, 22, 32, 0.05);
+  --cv-shadow: 0 1px 3px rgba(16, 22, 32, 0.06), 0 8px 24px rgba(16, 22, 32, 0.05);
+
+  --cv-r-sm: 0.45rem;
+  --cv-r: 0.65rem;
+  --cv-r-lg: 0.9rem;
+
+  --cv-gap: 1rem;
+  --cv-gap-lg: 1.5rem;
+
+  --cv-mono: "JetBrains Mono", "SF Mono", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
 }
 
-/* ---- interactive analysis board ---- */
+[data-bs-theme="dark"] {
+  --cv-accent: #34c583;
+  --cv-accent-soft: rgba(52, 197, 131, 0.14);
+  --cv-accent-line: rgba(52, 197, 131, 0.4);
+
+  --cv-bg: #0d1014;
+  --cv-surface: #14181f;
+  --cv-surface-2: #1a1f28;
+  --cv-ink: #e8ebef;
+  --cv-ink-2: #a3adba;
+  --cv-ink-3: #78828f;
+  --cv-line: rgba(255, 255, 255, 0.09);
+  --cv-line-strong: rgba(255, 255, 255, 0.16);
+
+  --cv-danger: #f2637a;
+  --cv-warn: #e3a13c;
+  --cv-info: #6aa9e9;
+
+  --cv-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --cv-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+body {
+  background: var(--cv-bg);
+  color: var(--cv-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- shell ------------------------------------------------------------- */
+
+.navbar {
+  border-bottom: 1px solid var(--cv-line);
+  background: var(--cv-surface) !important;
+  box-shadow: var(--cv-shadow-sm);
+}
+.cv-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.cv-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--cv-r-sm);
+  background: var(--cv-accent);
+  color: #fff;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+.cv-brand-name {
+  font-weight: 660;
+  letter-spacing: -0.015em;
+}
+.cv-navlink {
+  color: var(--cv-ink-2);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+}
+.cv-navlink:hover {
+  color: var(--cv-ink);
+}
+
+.cv-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1.75rem 1rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-gap-lg);
+}
+
+/* ---- sections ---------------------------------------------------------- */
+
+.cv-section-head {
+  margin-bottom: 0.9rem;
+}
+.cv-section-titleline {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.cv-section-title {
+  font-size: 1.05rem;
+  font-weight: 640;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.cv-section-lead {
+  color: var(--cv-ink-2);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin: 0.4rem 0 0;
+  max-width: 68ch;
+}
+.cv-step {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 1.5rem;
+  border-radius: 50%;
+  background: var(--cv-accent-soft);
+  color: var(--cv-accent);
+  font-size: 0.78rem;
+  font-weight: 680;
+}
+
+.cv-card {
+  background: var(--cv-surface);
+  border: 1px solid var(--cv-line);
+  border-radius: var(--cv-r-lg);
+  box-shadow: var(--cv-shadow);
+  padding: 1.25rem;
+}
+.cv-card-flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ---- controls ---------------------------------------------------------- */
+
+.btn {
+  border-radius: var(--cv-r-sm);
+  padding: 0.45rem 0.9rem;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.btn-primary {
+  background: var(--cv-accent);
+  border-color: var(--cv-accent);
+}
+.btn-primary:hover,
+.btn-primary:focus {
+  filter: brightness(0.94);
+  background: var(--cv-accent);
+  border-color: var(--cv-accent);
+}
+.btn-default,
+.btn-secondary {
+  background: var(--cv-surface);
+  border: 1px solid var(--cv-line-strong);
+  color: var(--cv-ink);
+}
+.btn-default:hover,
+.btn-secondary:hover {
+  background: var(--cv-surface-2);
+  color: var(--cv-ink);
+}
+
+.form-control,
+.form-select {
+  background: var(--cv-surface);
+  border-color: var(--cv-line-strong);
+  color: var(--cv-ink);
+  border-radius: var(--cv-r-sm);
+}
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--cv-accent);
+  box-shadow: 0 0 0 3px var(--cv-accent-soft);
+}
+.control-label,
+.shiny-input-container > label,
+.form-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--cv-ink-3);
+  margin-bottom: 0.35rem;
+}
+
+/* Radios and checkboxes as pill-style choices rather than bare list items. */
+.cv-choices .shiny-options-group,
+.cv-choices .shiny-input-radiogroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.cv-choices .radio,
+.cv-choices .form-check {
+  margin: 0;
+  padding: 0;
+}
+.cv-choices .radio label,
+.cv-choices .form-check label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--cv-line-strong);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: var(--cv-ink-2);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.cv-choices .radio label:hover,
+.cv-choices .form-check label:hover {
+  border-color: var(--cv-accent-line);
+  color: var(--cv-ink);
+}
+.cv-choices input[type="radio"]:checked + span,
+.cv-choices .form-check-input:checked ~ .form-check-label {
+  color: var(--cv-ink);
+  font-weight: 560;
+}
+
+/* ---- drop / paste zone ------------------------------------------------- */
+
+.paste-zone {
+  border: 1.5px dashed var(--cv-line-strong);
+  border-radius: var(--cv-r);
+  padding: 1.5rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  color: var(--cv-ink-2);
+  background: var(--cv-surface-2);
+  outline: none;
+  font-size: 0.9rem;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.paste-zone:hover {
+  border-color: var(--cv-accent-line);
+  color: var(--cv-ink);
+}
+.paste-zone:focus {
+  border-color: var(--cv-accent);
+  background: var(--cv-accent-soft);
+  color: var(--cv-ink);
+}
+
+.cv-dropzone-title {
+  font-weight: 600;
+  color: var(--cv-ink);
+  display: block;
+  margin-bottom: 0.15rem;
+}
+.cv-dropzone-hint {
+  font-size: 0.82rem;
+  color: var(--cv-ink-3);
+}
+
+/* Shiny's file input, made to sit beside the paste zone without shouting. */
+.cv-file .form-control {
+  border-style: dashed;
+}
+.cv-file .input-group-btn > .btn,
+.cv-file .input-group-text {
+  border-radius: var(--cv-r-sm);
+}
+.cv-file .progress {
+  height: 0.35rem;
+  margin-top: 0.4rem;
+}
+
+/* ---- board ------------------------------------------------------------- */
+
 .cv-board-wrap {
   display: flex;
   align-items: stretch;
-  gap: 10px;
+  gap: 0.6rem;
   max-width: 560px;
 }
 .cv-board {
   flex: 1 1 auto;
   min-width: 0;
   position: relative;
+  border-radius: var(--cv-r);
+  overflow: hidden;
+  box-shadow: var(--cv-shadow);
 }
 /* The arrow overlay sits on top of the board without eating drag events. */
 .cv-board .cv-arrows {
@@ -51,172 +321,324 @@
   z-index: 20;
 }
 .cv-evalbar {
-  width: 18px;
-  flex: 0 0 18px;
+  width: 14px;
+  flex: 0 0 14px;
   display: flex;
   flex-direction: column;
-  border: 1px solid #404040;
-  border-radius: 3px;
+  border-radius: 999px;
   overflow: hidden;
-  background: #8ca2ad;
+  background: var(--cv-surface-2);
+  border: 1px solid var(--cv-line);
 }
 .cv-evalbar-black {
-  background: #3a3a3a;
+  background: #2a2f38;
   height: 50%;
-  transition: height 0.25s ease;
+  transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .cv-evalbar-white {
-  background: #f2f2f2;
+  background: #f0f2f5;
   height: 50%;
-  transition: height 0.25s ease;
+  transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .cv-board-controls {
-  margin-top: 0.75rem;
+  margin-top: 0.9rem;
   display: flex;
   gap: 0.4rem;
   flex-wrap: wrap;
 }
+
+/* ---- evaluation readout ------------------------------------------------ */
+
 .cv-eval-headline {
-  font-size: 2rem;
-  font-weight: 600;
-  line-height: 1.1;
+  font-size: 2.25rem;
+  font-weight: 680;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
 }
+.cv-eval-sub {
+  color: var(--cv-ink-3);
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+}
+
+.cv-panel-label {
+  font-size: 0.72rem;
+  font-weight: 680;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cv-ink-3);
+  margin-bottom: 0.45rem;
+}
+
 .cv-line {
   display: flex;
   gap: 0.6rem;
   align-items: baseline;
-  padding: 0.25rem 0;
-  border-bottom: 1px solid #eee;
-  font-size: 0.9rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--cv-line);
+  font-size: 0.88rem;
+}
+.cv-line:last-child {
+  border-bottom: 0;
 }
 .cv-line-score {
-  font-weight: 600;
-  min-width: 3.6rem;
+  font-weight: 640;
+  min-width: 3.4rem;
   font-variant-numeric: tabular-nums;
+  color: var(--cv-ink);
 }
 .cv-line-move {
-  font-weight: 600;
-  min-width: 3.5rem;
+  font-weight: 620;
+  min-width: 3.2rem;
 }
 .cv-line-pv {
-  color: #666;
-  font-family: monospace;
-  font-size: 0.8rem;
+  color: var(--cv-ink-3);
+  font-family: var(--cv-mono);
+  font-size: 0.76rem;
   word-break: break-all;
 }
 .cv-movelist {
-  font-family: monospace;
-  font-size: 0.85rem;
-  max-height: 8rem;
+  font-family: var(--cv-mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  max-height: 9rem;
   overflow-y: auto;
   word-break: break-word;
+  color: var(--cv-ink-2);
 }
 
-/* ---- blunder radar ---- */
+.fen-code {
+  font-family: var(--cv-mono);
+  font-size: 0.76rem;
+  word-break: break-all;
+  background: var(--cv-surface-2);
+  border: 1px solid var(--cv-line);
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--cv-r-sm);
+  display: block;
+  color: var(--cv-ink-2);
+}
+
+/* ---- blunder radar ----------------------------------------------------- */
+
 .cv-radar-controls .form-group {
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.4rem;
 }
 .cv-radar-summary {
-  padding: 0.5rem 0.75rem;
-  margin: 0.5rem 0;
-  font-size: 0.9rem;
+  padding: 0.65rem 0.8rem;
+  margin: 0.5rem 0 0.65rem;
+  font-size: 0.86rem;
+  border-radius: var(--cv-r-sm);
+  border: 1px solid transparent;
+  line-height: 1.5;
 }
 .cv-radar-caption {
-  font-size: 0.8rem;
-  margin-bottom: 0.25rem;
+  font-size: 0.78rem;
+  margin-bottom: 0.3rem;
+  color: var(--cv-ink-3);
 }
 .cv-risk-bad {
-  color: #c53030;
-  font-weight: 600;
-  font-size: 0.8rem;
+  color: var(--cv-danger);
+  font-weight: 620;
+  font-size: 0.78rem;
 }
 
-/* ---- live game tracking ---- */
+/* Bootstrap's alerts, toned to the palette so they read as part of the page. */
+.alert {
+  border-radius: var(--cv-r-sm);
+  border: 1px solid var(--cv-line);
+  font-size: 0.88rem;
+}
+.alert-success {
+  background: var(--cv-accent-soft);
+  border-color: var(--cv-accent-line);
+  color: var(--cv-ink);
+}
+.alert-warning {
+  background: rgba(194, 118, 12, 0.1);
+  border-color: rgba(194, 118, 12, 0.32);
+  color: var(--cv-ink);
+}
+.alert-danger {
+  background: rgba(209, 57, 74, 0.1);
+  border-color: rgba(209, 57, 74, 0.32);
+  color: var(--cv-ink);
+}
+.alert-info {
+  background: rgba(43, 108, 176, 0.1);
+  border-color: rgba(43, 108, 176, 0.3);
+  color: var(--cv-ink);
+}
+
+/* ---- previews ---------------------------------------------------------- */
+
+.board-preview img {
+  max-width: 100%;
+  border: 1px solid var(--cv-line);
+  border-radius: var(--cv-r);
+  display: block;
+}
+
+/* ---- live capture ------------------------------------------------------ */
+
+.cv-capture-preview {
+  width: 100%;
+  max-width: 320px;
+  border: 1px solid var(--cv-line);
+  border-radius: var(--cv-r);
+  background: var(--cv-surface-2);
+  display: block;
+}
 .cv-hidden-video {
   display: none;
 }
-.cv-capture-preview {
-  width: 100%;
-  max-width: 460px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #f4f4f4;
-  cursor: crosshair;
-  display: block;
-  margin-top: 0.6rem;
-}
 .cv-capture-hint {
   font-size: 0.8rem;
-  margin-top: 0.4rem;
+  margin-top: 0.5rem;
+  color: var(--cv-ink-3);
+  line-height: 1.5;
 }
 .cv-live-paste {
   margin-top: 0.75rem;
   padding: 0.9rem;
   font-size: 0.85rem;
 }
-.cv-live-summary {
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-.cv-eval-graph {
-  width: 100%;
-  max-width: 100%;
-  height: 110px;
-  margin: 0.5rem 0;
-  display: block;
-  border-bottom: 1px solid #eee;
-}
-.cv-graph-hit {
-  cursor: pointer;
-}
-.cv-graph-hit:hover {
-  fill: rgba(43, 108, 176, 0.12);
-}
 .cv-live-moves {
-  font-size: 0.9rem;
-  line-height: 1.9;
-  max-height: 9rem;
-  overflow-y: auto;
+  margin-top: 0.5rem;
 }
-.cv-move-no {
-  color: #888;
-  font-size: 0.8rem;
-  margin-left: 0.35rem;
+
+/* ---- section layouts --------------------------------------------------- */
+
+/* Intake: file input and its options side by side, stacking on narrow. */
+.cv-intake {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--cv-gap) var(--cv-gap-lg);
+  align-items: start;
 }
-.cv-move {
-  padding: 0.05rem 0.3rem;
-  border-radius: 3px;
-  text-decoration: none;
-  color: #222;
+.cv-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.cv-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+.cv-readout {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: var(--cv-gap-lg);
+  margin-top: 1.15rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--cv-line);
+}
+
+/* Board: the board itself gets the room, analysis sits alongside. */
+.cv-board-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: var(--cv-gap-lg);
+  align-items: start;
+}
+.cv-analysis-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.cv-eval-block {
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--cv-line);
+}
+.cv-subpanel + .cv-subpanel,
+.cv-eval-block + .cv-subpanel {
+  padding-top: 0.15rem;
+}
+
+/* Live: capture controls on the left, the running game on the right. */
+.cv-live-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: var(--cv-gap-lg);
+  align-items: start;
+}
+.cv-live-capture,
+.cv-live-game {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Tracking settings, folded away: they are set once and then ignored, so
+   they should not occupy the same visual weight as the game itself. */
+.cv-settings {
+  border: 1px solid var(--cv-line);
+  border-radius: var(--cv-r-sm);
+  background: var(--cv-surface-2);
+}
+.cv-settings > summary {
+  cursor: pointer;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.82rem;
   font-weight: 600;
+  color: var(--cv-ink-2);
+  list-style: none;
 }
-.cv-move:hover {
-  background: #e6eef7;
-  text-decoration: none;
+.cv-settings > summary::-webkit-details-marker {
+  display: none;
 }
-.cv-q-inaccuracy {
-  color: #b7791f;
+.cv-settings > summary::before {
+  content: "\203A";
+  display: inline-block;
+  margin-right: 0.45rem;
+  transition: transform 0.15s;
 }
-.cv-q-mistake {
-  color: #dd6b20;
+.cv-settings[open] > summary::before {
+  transform: rotate(90deg);
 }
-.cv-q-blunder {
-  color: #c53030;
+.cv-settings-body {
+  padding: 0 0.75rem 0.75rem;
+  border-top: 1px solid var(--cv-line);
+  padding-top: 0.75rem;
 }
-.cv-q-blunder::after {
-  content: "??";
-  font-size: 0.75em;
-  vertical-align: super;
+.cv-settings-body .form-group {
+  margin-bottom: 0.65rem;
 }
-.cv-q-mistake::after {
-  content: "?";
-  font-size: 0.75em;
-  vertical-align: super;
+.cv-cal-preview {
+  margin-top: 0.75rem;
+  max-width: 340px;
 }
-a.cv-turning {
-  text-decoration: none;
-  color: inherit;
+
+/* ---- responsive -------------------------------------------------------- */
+
+@media (max-width: 991.98px) {
+  .cv-board-layout,
+  .cv-live-layout,
+  .cv-readout,
+  .cv-intake {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cv-board-wrap {
+    max-width: 100%;
+  }
+  .cv-eval-headline {
+    font-size: 1.9rem;
+  }
+  .cv-cal-preview,
+  .cv-capture-preview {
+    max-width: 100%;
+  }
 }
-a.cv-turning:hover {
-  background: #fdf3f3;
+@media (max-width: 575.98px) {
+  .cv-page {
+    padding: 1.25rem 0.75rem 3rem;
+    gap: 1.15rem;
+  }
+  .cv-card {
+    padding: 1rem;
+    border-radius: var(--cv-r);
+  }
 }

@@ -7,42 +7,58 @@
 mod_calibrate_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    h4("Piece sets"),
-    p(
-      "Download the popular Lichess piece sets (about 1 MB total, fetched ",
-      "from lichess.org's public repository for personal use). Screenshots ",
-      "using any downloaded set are then recognized automatically - no ",
-      "calibration needed."
+    tags$section(
+      class = "cv-card",
+      cv_section_title(
+        "Lichess piece sets",
+        paste(
+          "About 1 MB in total, fetched from lichess.org's public repository",
+          "for personal use. Screenshots using any downloaded set are then",
+          "recognised automatically, with nothing to calibrate."
+        )
+      ),
+      div(
+        class = "cv-actions",
+        actionButton(ns("download_sets"), "Download piece sets", class = "btn-primary")
+      ),
+      uiOutput(ns("sets_status"))
     ),
-    actionButton(ns("download_sets"), "Download piece sets", class = "btn-primary"),
-    uiOutput(ns("sets_status")),
-    tags$hr(),
-    h4("Manual calibration (unknown piece sets)"),
-    p(
-      "For a piece set the app doesn't know (Chess.com themes, custom art), ",
-      "upload or paste a screenshot of that site's ",
-      tags$strong("standard starting position"),
-      " to teach the recognizer its pieces. The result joins auto-detection ",
-      "as the \"custom\" set."
-    ),
-    image_input_ui("cal", ns),
-    fluidRow(
-      column(6, radioButtons(
-        ns("orientation"), "Board orientation",
-        c(
-          "Auto-detect" = "auto",
-          "White on the bottom" = "white",
-          "Black on the bottom" = "black"
-        ),
-        inline = FALSE
-      )),
-      column(6, checkboxInput(ns("autocrop"), "Auto-crop to the board", value = TRUE))
-    ),
-    actionButton(ns("calibrate"), "Calibrate", class = "btn-primary"),
-    actionButton(ns("reset"), "Reset to Lichess defaults"),
-    tags$hr(),
-    uiOutput(ns("status")),
-    div(class = "board-preview", imageOutput(ns("preview"), height = "auto"))
+    tags$section(
+      class = "cv-card",
+      cv_section_title(
+        "Teach an unknown set",
+        tagList(
+          "For art the app does not know - Chess.com themes, custom pieces - ",
+          "upload or paste a screenshot of that site's ",
+          tags$strong("standard starting position"),
+          ". The result joins auto-detection as the \"custom\" set."
+        )
+      ),
+      div(
+        class = "cv-intake",
+        div(class = "cv-file", image_input_ui("cal", ns)),
+        div(
+          class = "cv-options cv-choices",
+          radioButtons(
+            ns("orientation"), "Board orientation",
+            c(
+              "Auto" = "auto",
+              "White at bottom" = "white",
+              "Black at bottom" = "black"
+            ),
+            inline = TRUE
+          ),
+          checkboxInput(ns("autocrop"), "Auto-crop to the board", value = TRUE)
+        )
+      ),
+      div(
+        class = "cv-actions",
+        actionButton(ns("calibrate"), "Calibrate", class = "btn-primary"),
+        actionButton(ns("reset"), "Reset to Lichess defaults")
+      ),
+      uiOutput(ns("status")),
+      div(class = "board-preview cv-cal-preview", imageOutput(ns("preview"), height = "auto"))
+    )
   )
 }
 
