@@ -26,18 +26,22 @@
 #' @return A Shiny UI tag list.
 mod_live_ui <- function(id) {
   ns <- NS(id)
-  tagList(
-    tags$h4("Live game"),
-    p(
-      "Follow a game as it is played. Share the window you are playing in and ",
-      "mark the board once, or just paste a fresh screenshot after each move. ",
-      "A new position is only added to the game when a single legal move ",
-      "explains it, so misreads and half-drawn animation frames are thrown ",
-      "away instead of corrupting the record."
+  tags$section(
+    class = "cv-card",
+    cv_section_title(
+      "Follow a live game",
+      paste(
+        "Share the window you are playing in and mark the board once, or",
+        "paste a fresh screenshot after each move. A position joins the game",
+        "only when a single legal move explains it, so misreads and half-drawn",
+        "animation frames are discarded instead of corrupting the record."
+      ),
+      step = "3"
     ),
-    fluidRow(
-      column(
-        5,
+    div(
+      class = "cv-live-layout",
+      div(
+        class = "cv-live-capture",
         div(
           class = "cv-capture",
           `data-frame-input` = ns("frame"),
@@ -54,26 +58,27 @@ mod_live_ui <- function(id) {
           ),
           tags$video(id = ns("video"), class = "cv-hidden-video", muted = NA, playsinline = NA),
           tags$canvas(id = ns("preview"), class = "cv-capture-preview"),
-          div(class = "text-muted cv-capture-hint", uiOutput(ns("cap_state")))
+          div(class = "cv-capture-hint", uiOutput(ns("cap_state")))
         ),
         tags$div(
           class = "paste-zone cv-live-paste", tabindex = "0",
           `data-target` = ns("paste"),
-          "...or click here and Ctrl+V a screenshot after each move"
-        )
-      ),
-      column(
-        7,
-        fluidRow(
-          column(6, radioButtons(
-            # Named for the button it configures: without a game running, the
-            # first position read is adopted either way, and a label reading
-            # "start the game from" would promise otherwise.
-            ns("anchor"), "\"New game\" starts from",
-            c("The standard starting position" = "start", "Whatever I first read" = "frame"),
-            selected = "start"
-          )),
-          column(6,
+          tags$span(class = "cv-dropzone-title", "...or paste after each move"),
+          tags$span(class = "cv-dropzone-hint", "Click here, then Ctrl+V")
+        ),
+        tags$details(
+          class = "cv-settings",
+          tags$summary("Tracking settings"),
+          div(
+            class = "cv-settings-body cv-choices",
+            radioButtons(
+              # Named for the button it configures: without a game running, the
+              # first position read is adopted either way, and a label reading
+              # "start the game from" would promise otherwise.
+              ns("anchor"), "\"New game\" starts from",
+              c("Standard start" = "start", "Whatever I first read" = "frame"),
+              selected = "start"
+            ),
             sliderInput(ns("interval"), "Check every (seconds)", 0.5, 5, 1.2, step = 0.1),
             selectInput(
               ns("max_plies"), "Tolerate missing",
@@ -81,16 +86,23 @@ mod_live_ui <- function(id) {
               selected = "2"
             )
           )
+        )
+      ),
+      div(
+        class = "cv-live-game",
+        div(
+          class = "cv-actions",
+          actionButton(ns("new_game"), "New game", class = "btn-primary"),
+          actionButton(ns("resync"), "Re-anchor here")
         ),
-        actionButton(ns("new_game"), "New game", class = "btn-primary"),
-        actionButton(ns("resync"), "Re-anchor here"),
-        tags$hr(),
         uiOutput(ns("summary")),
         uiOutput(ns("graph")),
         div(class = "cv-live-moves", uiOutput(ns("moves"))),
-        tags$hr(),
-        tags$strong("Where the game turned"),
-        uiOutput(ns("turning")),
+        div(
+          class = "cv-subpanel",
+          div(class = "cv-panel-label", "Where the game turned"),
+          uiOutput(ns("turning"))
+        ),
         uiOutput(ns("review"))
       )
     )

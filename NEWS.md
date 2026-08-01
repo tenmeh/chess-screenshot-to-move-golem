@@ -1,6 +1,14 @@
-# chessvision (development version)
+# chessvision 1.0.0
 
 ## New features
+
+* **The interface has been rebuilt.** It was stock Bootstrap 3 Shiny - a
+  title, tabs, and every control stacked down one column between horizontal
+  rules. It now runs on Bootstrap 5 with a designed palette, type scale and
+  spacing, and a light/dark switch in the navbar. The board is the centre of
+  the app, so it now sits in its own panel with the evaluation, engine lines
+  and blunder radar alongside it, rather than being the third thing down a
+  wall of forms. Capture settings are folded away until wanted.
 
 * **The opponent's rating is estimated from their moves.** Reviewing a move no
   longer starts by asking which strength to explain it for - a question most

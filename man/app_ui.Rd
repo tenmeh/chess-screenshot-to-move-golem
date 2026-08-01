@@ -14,5 +14,8 @@ bookmarking signature).}
 A Shiny UI tag list.
 }
 \description{
-Top-level Shiny UI
+The board is the centre of this app, so it gets the top of the page and the
+width to be read comfortably. Everything that feeds it - the screenshot, the
+capture controls, the calibration - is arranged around that, rather than the
+board being the third thing down a stack of forms.
 }

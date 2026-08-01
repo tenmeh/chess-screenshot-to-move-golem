@@ -1,4 +1,11 @@
-# chessvision (golem/Shiny)
+# Tanmai Chess
+
+Screenshot a chess board, get the move - and, more unusually, get told where a
+player of a given strength is likely to go wrong.
+
+Named for Tanmay and [Maia](https://github.com/CSSLab/maia-chess), the
+human-move network the Blunder Radar is built on. The R package inside is
+called `chessvision`.
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/tenmeh/chess-screenshot-to-move-golem/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/tenmeh/chess-screenshot-to-move-golem/actions/workflows/R-CMD-check.yaml)
