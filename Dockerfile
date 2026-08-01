@@ -41,13 +41,20 @@ RUN meson setup build --buildtype=release \
 
 # Maia weights, fetched here so the runtime stage needs no network access.
 # maia-1100/1500/1900 are the three networks the rating slider exposes.
+ADD https://github.com/CSSLab/maia-chess/raw/master/maia_weights/maia-1100.pb.gz /weights/maia-1100.pb.gz
+ADD https://github.com/CSSLab/maia-chess/raw/master/maia_weights/maia-1500.pb.gz /weights/maia-1500.pb.gz
+ADD https://github.com/CSSLab/maia-chess/raw/master/maia_weights/maia-1900.pb.gz /weights/maia-1900.pb.gz
+
+# Widening the permissions is not cosmetic: ADD from a URL leaves files 0600
+# (root-only), so lc0 could not read them if the container runs as a non-root
+# uid, which Cloud Run may do. COPY --from preserves the mode, so fixing it
+# here is what makes the runtime stage safe.
 #
-# --chmod=644 is required, not cosmetic: ADD from a URL leaves files 0600
-# (root-only), so lc0 could not read them if the container runs as a
-# non-root uid, which Cloud Run may do.
-ADD --chmod=644 https://github.com/CSSLab/maia-chess/raw/master/maia_weights/maia-1100.pb.gz /weights/maia-1100.pb.gz
-ADD --chmod=644 https://github.com/CSSLab/maia-chess/raw/master/maia_weights/maia-1500.pb.gz /weights/maia-1500.pb.gz
-ADD --chmod=644 https://github.com/CSSLab/maia-chess/raw/master/maia_weights/maia-1900.pb.gz /weights/maia-1900.pb.gz
+# Done as a separate RUN rather than `ADD --chmod=`, which is a BuildKit-only
+# extension: Google Cloud Build still invokes the legacy docker builder, where
+# it fails outright with "the --chmod option requires BuildKit". A plain chmod
+# behaves identically under both builders.
+RUN chmod 0644 /weights/*.pb.gz
 
 # ---------------------------------------------------------------------------
 # Stage 2: the app.

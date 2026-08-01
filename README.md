@@ -166,27 +166,22 @@ move - so the image is verified even with no cloud account configured.
 
 ### Cloud Run
 
-`deploy-cloudrun.yaml` deploys after `R-CMD-check` passes on `main`. Cloud Run
-suits this app because memory is configurable (the neural-net engine planned
-for the next phase needs far more than the 512 MB typical of free tiers) and it
-scales to zero when idle. One-time setup:
+Deployment is driven by a **Google Cloud Build trigger** on `main`, which
+builds this `Dockerfile` and updates the Cloud Run service. Cloud Run suits
+this app because memory is configurable - lc0 plus three Maia networks needs
+far more than the 512 MB typical of free tiers - and it scales to zero when
+idle.
 
-1. Create a GCP project and enable the Cloud Run, Artifact Registry and IAM
-   Credentials APIs.
-2. Create an Artifact Registry Docker repository named `chessvision` in a
-   free-tier region (`us-central1`, `us-east1` or `us-west1`).
-3. Create a service account with *Cloud Run Admin*, *Artifact Registry Writer*
-   and *Service Account User*, and set up
-   [workload identity federation](https://github.com/google-github-actions/auth#preferred-direct-workload-identity-federation)
-   for this repository (keyless - no JSON key is stored in GitHub).
-4. Add repository **secrets** `GCP_WORKLOAD_IDENTITY_PROVIDER` and
-   `GCP_SERVICE_ACCOUNT`, and repository **variables** `GCP_PROJECT_ID` and
-   `GCP_REGION`.
+One thing to know when editing the `Dockerfile`: Cloud Build invokes the
+**legacy docker builder**, not BuildKit, so BuildKit-only syntax
+(`ADD --chmod=`, `RUN --mount=`, heredocs) fails there even though it builds
+fine locally and in `docker-build.yaml`. Stick to portable Dockerfile syntax.
 
-The deploy step sets values that matter for Shiny specifically: low
-concurrency, because one R process is single-threaded; a long request timeout,
-because Shiny holds a websocket open for the session; session affinity; and
-startup CPU boost to shorten cold starts.
+Settings that matter for Shiny specifically, worth checking on the service:
+low concurrency, because one R process is single-threaded; a long request
+timeout, because Shiny holds a websocket open for the session; session
+affinity; and startup CPU boost to shorten cold starts. Memory should be at
+least 2 GiB now that the human model ships in the image.
 
 ## Known limitations
 

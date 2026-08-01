@@ -67,6 +67,11 @@
 
 ## Bug fixes
 
+* The image builds on Google Cloud Build again. The Maia weights had their
+  permissions widened with `ADD --chmod=`, which is BuildKit-only syntax;
+  Cloud Build still invokes the legacy docker builder and rejected it
+  outright. A separate `chmod` step behaves identically under both builders.
+
 * The interactive board keeps its move history when a tracked game drives it.
   Inferred moves are played onto it one at a time instead of the position being
   set outright, so its move numbers agree with the game's rather than
