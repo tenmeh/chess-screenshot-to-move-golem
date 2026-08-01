@@ -61,10 +61,21 @@
 
   function onDrop(cid) {
     return function (source, target) {
+      var st = boards[cid];
+
+      // Pressing and releasing on the same square is a tap, not a drag - but
+      // chessboard.js has already claimed the mousedown, so this callback is
+      // the only place it can be seen. Routing it here rather than waiting for
+      // a `click` is the whole trick: on a piece, chessboard.js starts a drag
+      // the moment you press, and the click that follows arrives after this.
+      if (target === source) {
+        handleTap(cid, source);
+        noteHandled(cid, source);
+        return "snapback";
+      }
+
       clearSelection(cid);
-      // A drag is a completed interaction; the click that follows it must not
-      // be read as the first tap of a tap-to-move.
-      boards[cid].suppressClick = true;
+      noteHandled(cid, target);
       if (!tryMove(cid, source, target)) return "snapback";
     };
   }
@@ -122,42 +133,76 @@
     return p && p.color === g.turn();
   }
 
+  // What a tap on a square means. Reached two ways, because chessboard.js only
+  // claims presses that land on a piece:
+  //   - via onDrop(source === target), for a tap on one of your own pieces;
+  //   - via the delegated click below, for empty squares and enemy pieces,
+  //     where no drag was ever started.
+  function handleTap(cid, square) {
+    var st = boards[cid];
+    if (!st) return;
+
+    var over =
+      typeof st.game.isGameOver === "function"
+        ? st.game.isGameOver()
+        : st.game.game_over();
+    if (over) return;
+
+    if (!st.selected) {
+      if (ownPieceAt(cid, square)) selectSquare(cid, square);
+      return;
+    }
+    if (st.selected === square) {
+      clearSelection(cid); // tapping it again puts it back down
+      return;
+    }
+    if (tryMove(cid, st.selected, square)) {
+      clearSelection(cid);
+      st.board.position(st.game.fen());
+      return;
+    }
+    // Not a legal destination: treat it as picking a different piece, or as a
+    // miss.
+    if (ownPieceAt(cid, square)) selectSquare(cid, square);
+    else clearSelection(cid);
+  }
+
+  // Record that chessboard.js already dealt with a press on this square, so
+  // the click that may follow is a duplicate rather than a new tap.
+  //
+  // Deliberately keyed on the square and a short deadline, not a plain flag.
+  // A flag assumes the trailing click always arrives - and it does not:
+  // chessboard.js moves the piece element to a drag layer and back, so
+  // mousedown and mouseup can end up on different elements and the browser
+  // fires no click at all. The flag then survived to eat the *next* tap,
+  // which is why selecting a piece worked but the move needed two clicks on
+  // the destination. Keyed this way, a stale record can only ever suppress a
+  // second press on the same square, and expires regardless.
+  function noteHandled(cid, square) {
+    var st = boards[cid];
+    if (!st) return;
+    st.handledSquare = square;
+    st.handledAt = Date.now();
+  }
+
+  function alreadyHandled(cid, square) {
+    var st = boards[cid];
+    if (!st || st.handledSquare !== square) return false;
+    // Generous, because a touch browser can delay the synthesised click.
+    var fresh = Date.now() - st.handledAt < 700;
+    if (fresh) st.handledSquare = null; // one duplicate only
+    return fresh;
+  }
+
   function onBoardClick(cid) {
     return function (ev) {
       var st = boards[cid];
       if (!st) return;
-      // Swallow exactly one click after a drag finishes.
-      if (st.suppressClick) {
-        st.suppressClick = false;
-        return;
-      }
       var cell = ev.target.closest("[data-square]");
       if (!cell) return;
       var square = cell.getAttribute("data-square");
-
-      var over =
-        typeof st.game.isGameOver === "function"
-          ? st.game.isGameOver()
-          : st.game.game_over();
-      if (over) return;
-
-      if (!st.selected) {
-        if (ownPieceAt(cid, square)) selectSquare(cid, square);
-        return;
-      }
-      if (st.selected === square) {
-        clearSelection(cid); // tapping it again puts it back down
-        return;
-      }
-      if (tryMove(cid, st.selected, square)) {
-        clearSelection(cid);
-        st.board.position(st.game.fen());
-        return;
-      }
-      // Not a legal destination: treat it as picking a different piece, or
-      // as a miss.
-      if (ownPieceAt(cid, square)) selectSquare(cid, square);
-      else clearSelection(cid);
+      if (alreadyHandled(cid, square)) return;
+      handleTap(cid, square);
     };
   }
 
@@ -196,7 +241,8 @@
       stateInput: msg.stateInput,
       orientation: msg.orientation || "white",
       selected: null,
-      suppressClick: false
+      handledSquare: null,
+      handledAt: 0
     };
     // Delegated, so it survives chessboard.js rebuilding the squares on every
     // position change.
