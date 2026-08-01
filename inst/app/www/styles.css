@@ -93,6 +93,11 @@ body {
   font-weight: 660;
   letter-spacing: -0.015em;
 }
+.cv-brand-sub {
+  font-weight: 500;
+  color: var(--cv-ink-3);
+  margin-left: 0.15rem;
+}
 .cv-navlink {
   color: var(--cv-ink-2);
   text-decoration: none;

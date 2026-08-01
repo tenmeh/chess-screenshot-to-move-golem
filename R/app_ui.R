@@ -13,7 +13,7 @@ app_ui <- function(request) {
     title = cv_brand(),
     id = "main_tabs",
     theme = cv_theme(),
-    window_title = "chessvision - read a board, find the move",
+    window_title = "Tanmai Chess - read a board, find the move",
     fillable = FALSE,
     # Stylesheets, the chessboard/chess.js bundles and the resource paths they
     # are served from. This has to hang off the page itself: `page_navbar()`
@@ -52,12 +52,21 @@ app_ui <- function(request) {
 
 #' Wordmark for the navbar
 #'
+#' "Tanmai" is Tanmay and Maia run together - the author, and the human-move
+#' network the Blunder Radar is built on. The R package stays `chessvision`:
+#' that name is an implementation detail nobody using the app ever sees, and
+#' renaming it would touch the NAMESPACE, the Dockerfile's build-time checks
+#' and every internal call for no user-visible gain.
+#'
 #' @return A Shiny tag.
 cv_brand <- function() {
   tags$span(
     class = "cv-brand",
     tags$span(class = "cv-brand-mark", HTML("&#9822;")), # knight
-    tags$span(class = "cv-brand-name", "chessvision")
+    tags$span(
+      class = "cv-brand-name",
+      "Tanmai", tags$span(class = "cv-brand-sub", "chess")
+    )
   )
 }
 

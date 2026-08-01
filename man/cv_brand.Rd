@@ -10,5 +10,9 @@ cv_brand()
 A Shiny tag.
 }
 \description{
-Wordmark for the navbar
+"Tanmai" is Tanmay and Maia run together - the author, and the human-move
+network the Blunder Radar is built on. The R package stays \code{chessvision}:
+that name is an implementation detail nobody using the app ever sees, and
+renaming it would touch the NAMESPACE, the Dockerfile's build-time checks
+and every internal call for no user-visible gain.
 }
