@@ -70,14 +70,12 @@
       // the moment you press, and the click that follows arrives after this.
       if (target === source) {
         handleTap(cid, source);
-        // A click still fires after this mouseup; without swallowing it the
-        // tap would immediately be undone by the delegated handler below.
-        st.suppressClick = true;
+        noteHandled(cid, source);
         return "snapback";
       }
 
       clearSelection(cid);
-      st.suppressClick = true;
+      noteHandled(cid, target);
       if (!tryMove(cid, source, target)) return "snapback";
     };
   }
@@ -169,19 +167,42 @@
     else clearSelection(cid);
   }
 
+  // Record that chessboard.js already dealt with a press on this square, so
+  // the click that may follow is a duplicate rather than a new tap.
+  //
+  // Deliberately keyed on the square and a short deadline, not a plain flag.
+  // A flag assumes the trailing click always arrives - and it does not:
+  // chessboard.js moves the piece element to a drag layer and back, so
+  // mousedown and mouseup can end up on different elements and the browser
+  // fires no click at all. The flag then survived to eat the *next* tap,
+  // which is why selecting a piece worked but the move needed two clicks on
+  // the destination. Keyed this way, a stale record can only ever suppress a
+  // second press on the same square, and expires regardless.
+  function noteHandled(cid, square) {
+    var st = boards[cid];
+    if (!st) return;
+    st.handledSquare = square;
+    st.handledAt = Date.now();
+  }
+
+  function alreadyHandled(cid, square) {
+    var st = boards[cid];
+    if (!st || st.handledSquare !== square) return false;
+    // Generous, because a touch browser can delay the synthesised click.
+    var fresh = Date.now() - st.handledAt < 700;
+    if (fresh) st.handledSquare = null; // one duplicate only
+    return fresh;
+  }
+
   function onBoardClick(cid) {
     return function (ev) {
       var st = boards[cid];
       if (!st) return;
-      // Swallow exactly one click after chessboard.js has already dealt with
-      // this press as a drag or a tap.
-      if (st.suppressClick) {
-        st.suppressClick = false;
-        return;
-      }
       var cell = ev.target.closest("[data-square]");
       if (!cell) return;
-      handleTap(cid, cell.getAttribute("data-square"));
+      var square = cell.getAttribute("data-square");
+      if (alreadyHandled(cid, square)) return;
+      handleTap(cid, square);
     };
   }
 
@@ -220,7 +241,8 @@
       stateInput: msg.stateInput,
       orientation: msg.orientation || "white",
       selected: null,
-      suppressClick: false
+      handledSquare: null,
+      handledAt: 0
     };
     // Delegated, so it survives chessboard.js rebuilding the squares on every
     // position change.

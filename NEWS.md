@@ -1,3 +1,17 @@
+# chessvision 1.0.3
+
+## Bug fixes
+
+* **Tapping a highlighted square works on the first tap.** It took two. The
+  guard that stops a tap being handled twice was a plain flag, set when
+  chessboard.js reported the press and cleared by the click that follows it -
+  but that click does not always arrive, because chessboard.js moves the piece
+  element to a drag layer and back, so the press and release can land on
+  different elements. The flag then survived to swallow the *next* tap, which
+  is why selecting a piece worked and moving it needed two goes. The guard is
+  now tied to the specific square and expires on its own, so a stale one can
+  only ever suppress a repeat press on the same square.
+
 # chessvision 1.0.2
 
 ## Bug fixes
