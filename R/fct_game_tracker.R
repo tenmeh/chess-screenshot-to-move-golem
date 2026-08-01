@@ -431,9 +431,13 @@ game_turning_points <- function(game, min_loss = 100, n = 5L) {
   utils::head(df[order(-df$loss), ], n)
 }
 
-#' Draw the evaluation across a game as an inline SVG
+#' Geometry for the evaluation graph
 #'
-#' One line, the whole story: where the game was level and where it turned.
+#' The arithmetic behind the graph, with no drawing: where each point sits and
+#' what shapes join them. [eval_graph_svg()] turns this into an SVG. They are
+#' split so this layer stays free of any UI toolkit - see the note in
+#' `test-core-boundary.R`.
+#'
 #' Evaluations are squashed with the same logistic the eval bar uses, so a
 #' three-pawn edge and a nine-pawn one stay visibly different without the graph
 #' being dominated by a single decisive moment.
@@ -444,13 +448,11 @@ game_turning_points <- function(game, min_loss = 100, n = 5L) {
 #'
 #' @param cp Centipawn evaluations from White's point of view, one per position
 #'   (so one more than the number of moves). `NA` where not yet measured.
-#' @param click_input Namespaced Shiny input id to report clicks to, or `NULL`
-#'   for a static graph. Each point reports its own index as `ply`, counting
-#'   the moves played to reach it - so 0 is the opening position, and every
-#'   other value names the move that arrived there.
 #' @param width,height Pixel size of the graph.
-#' @return A `shiny::tags$svg` element, or `NULL` if there is nothing to draw.
-eval_graph_svg <- function(cp, click_input = NULL, width = 420, height = 110) {
+#' @return A list with `n` points, `xs`/`ys` coordinates, `points` and `area`
+#'   as SVG coordinate strings, `mid` (the halfway line) and `hit_width` (the
+#'   width of one clickable band); or `NULL` if there is nothing to draw.
+eval_graph_geometry <- function(cp, width = 420, height = 110) {
   if (!length(cp) || all(is.na(cp))) {
     return(NULL)
   }
@@ -470,43 +472,15 @@ eval_graph_svg <- function(cp, click_input = NULL, width = 420, height = 110) {
   pts <- paste(sprintf("%.1f,%.1f", xs, ys), collapse = " ")
   mid <- height / 2
 
-  # A filled band between the curve and the halfway line reads as "who is
-  # better" at a glance, which a bare line does not.
-  area <- sprintf("0,%.1f %s %.1f,%.1f", mid, pts, width, mid)
-
-  hotspots <- if (is.null(click_input)) {
-    list()
-  } else {
-    lapply(seq_len(n), function(i) {
-      w <- if (n == 1) width else width / (n - 1)
-      tags$rect(
-        x = max(0, xs[i] - w / 2), y = 0, width = w, height = height,
-        fill = "transparent", class = "cv-graph-hit",
-        onclick = sprintf(
-          "Shiny.setInputValue('%s', {ply: %d, nonce: Math.random()}, {priority: 'event'})",
-          click_input, i - 1L
-        )
-      )
-    })
-  }
-
-  do.call(tags$svg, c(
-    list(
-      class = "cv-eval-graph", width = width, height = height,
-      viewBox = sprintf("0 0 %d %d", as.integer(width), as.integer(height)),
-      preserveAspectRatio = "none"
-    ),
-    list(
-      tags$polygon(points = area, fill = "#2b6cb0", `fill-opacity` = "0.18"),
-      tags$line(
-        x1 = 0, y1 = mid, x2 = width, y2 = mid,
-        stroke = "#94a3b8", `stroke-dasharray` = "3 3", `stroke-width` = 1
-      ),
-      tags$polyline(
-        points = pts, fill = "none", stroke = "#2b6cb0",
-        `stroke-width` = 2, `stroke-linejoin` = "round"
-      )
-    ),
-    hotspots
-  ))
+  list(
+    n = n,
+    xs = xs,
+    ys = ys,
+    points = pts,
+    # A filled band between the curve and the halfway line reads as "who is
+    # better" at a glance, which a bare line does not.
+    area = sprintf("0,%.1f %s %.1f,%.1f", mid, pts, width, mid),
+    mid = mid,
+    hit_width = if (n == 1) width else width / (n - 1)
+  )
 }
