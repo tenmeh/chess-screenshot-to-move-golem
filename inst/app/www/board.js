@@ -44,17 +44,120 @@
     };
   }
 
+  // Try a move, updating the board and telling the server if it was legal.
+  // Returns true when the move was played.
+  function tryMove(cid, from, to) {
+    var st = boards[cid];
+    var move = null;
+    try {
+      move = st.game.move({ from: from, to: to, promotion: "q" });
+    } catch (e) {
+      move = null; // chess.js 1.x throws on an illegal move
+    }
+    if (move === null) return false;
+    sendState(cid);
+    return true;
+  }
+
   function onDrop(cid) {
     return function (source, target) {
+      clearSelection(cid);
+      // A drag is a completed interaction; the click that follows it must not
+      // be read as the first tap of a tap-to-move.
+      boards[cid].suppressClick = true;
+      if (!tryMove(cid, source, target)) return "snapback";
+    };
+  }
+
+  // ---- tap to move -------------------------------------------------------
+  // Dragging a piece across a 34px square with a thumb is miserable, and on a
+  // phone that is the only size a board comes in. Tapping the piece and then
+  // its destination is the interaction every mobile chess app uses, and it
+  // costs desktop users nothing - drag still works exactly as before.
+
+  function clearSelection(cid) {
+    var st = boards[cid];
+    if (!st) return;
+    var host = document.getElementById(cid);
+    if (host) {
+      host.querySelectorAll(".cv-sq-selected, .cv-sq-target").forEach(function (e) {
+        e.classList.remove("cv-sq-selected", "cv-sq-target");
+      });
+    }
+    st.selected = null;
+  }
+
+  function selectSquare(cid, square) {
+    var st = boards[cid];
+    var host = document.getElementById(cid);
+    if (!st || !host) return;
+    clearSelection(cid);
+    st.selected = square;
+
+    var from = host.querySelector('[data-square="' + square + '"]');
+    if (from) from.classList.add("cv-sq-selected");
+
+    // Show where it can actually go. chess.js is already here and authoritative,
+    // so this cannot disagree with what a move attempt will accept.
+    var moves = [];
+    try {
+      moves = st.game.moves({ square: square, verbose: true }) || [];
+    } catch (e) {
+      moves = [];
+    }
+    moves.forEach(function (m) {
+      var el = host.querySelector('[data-square="' + m.to + '"]');
+      if (el) el.classList.add("cv-sq-target");
+    });
+  }
+
+  function ownPieceAt(cid, square) {
+    var g = boards[cid].game;
+    var p = null;
+    try {
+      p = g.get(square);
+    } catch (e) {
+      p = null;
+    }
+    return p && p.color === g.turn();
+  }
+
+  function onBoardClick(cid) {
+    return function (ev) {
       var st = boards[cid];
-      var move = null;
-      try {
-        move = st.game.move({ from: source, to: target, promotion: "q" });
-      } catch (e) {
-        move = null; // chess.js 1.x throws on an illegal move
+      if (!st) return;
+      // Swallow exactly one click after a drag finishes.
+      if (st.suppressClick) {
+        st.suppressClick = false;
+        return;
       }
-      if (move === null) return "snapback";
-      sendState(cid);
+      var cell = ev.target.closest("[data-square]");
+      if (!cell) return;
+      var square = cell.getAttribute("data-square");
+
+      var over =
+        typeof st.game.isGameOver === "function"
+          ? st.game.isGameOver()
+          : st.game.game_over();
+      if (over) return;
+
+      if (!st.selected) {
+        if (ownPieceAt(cid, square)) selectSquare(cid, square);
+        return;
+      }
+      if (st.selected === square) {
+        clearSelection(cid); // tapping it again puts it back down
+        return;
+      }
+      if (tryMove(cid, st.selected, square)) {
+        clearSelection(cid);
+        st.board.position(st.game.fen());
+        return;
+      }
+      // Not a legal destination: treat it as picking a different piece, or
+      // as a miss.
+      if (ownPieceAt(cid, square)) selectSquare(cid, square);
+      else clearSelection(cid);
     };
   }
 
@@ -91,8 +194,14 @@
       board: board,
       game: game,
       stateInput: msg.stateInput,
-      orientation: msg.orientation || "white"
+      orientation: msg.orientation || "white",
+      selected: null,
+      suppressClick: false
     };
+    // Delegated, so it survives chessboard.js rebuilding the squares on every
+    // position change.
+    var host = document.getElementById(cid);
+    if (host) host.addEventListener("click", onBoardClick(cid));
     window.addEventListener("resize", function () {
       board.resize();
       redrawArrows(cid);
@@ -245,11 +354,29 @@
       return;
     }
     st.game = game;
+    // The selected piece may not exist in the new position, and the highlight
+    // would survive onto whatever now sits on that square.
+    clearSelection(msg.container);
     st.board.position(msg.fen, false);
     if (msg.orientation && msg.orientation !== st.orientation) {
       st.orientation = msg.orientation;
       st.board.orientation(msg.orientation);
     }
+
+    // A position just arrived from somewhere else on the page. On a phone the
+    // board can be two screens further down, so bring it into view - but only
+    // when it is actually off screen, which means this does nothing on a
+    // desktop where the board was already in front of you.
+    var host = document.getElementById(msg.container);
+    if (host && typeof host.scrollIntoView === "function") {
+      var r = host.getBoundingClientRect();
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      var visible = r.top < vh * 0.75 && r.bottom > vh * 0.25;
+      if (!visible) {
+        host.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+
     sendState(msg.container);
   }
 

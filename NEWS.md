@@ -1,3 +1,22 @@
+# chessvision 1.0.1
+
+## Bug fixes
+
+* **Pieces can be moved by tapping.** Tap a piece to select it - its legal
+  destinations appear as dots, captures as rings - then tap where it should
+  go. Dragging still works exactly as before. Dragging was the only way to
+  move a piece, and on a phone the board is small enough that a square is
+  about 34 pixels, which is not a realistic drag target for a thumb.
+
+* **Controls are big enough to hit on a touch screen.** Radio buttons were
+  19 pixels tall against an accessibility floor of about 44, so choosing a
+  side to move or an orientation was a matter of luck.
+
+* **A recognised position scrolls itself into view.** On a phone the page is
+  several screens tall and the board sat below the fold, so analysing a
+  screenshot appeared to do nothing. The board is only scrolled to when it is
+  actually off screen, so nothing moves under you on a desktop.
+
 # chessvision 1.0.0
 
 ## New features
