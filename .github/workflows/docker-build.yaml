@@ -52,9 +52,24 @@ jobs:
             docker logs chessvision
             exit 1
           fi
-          # The page must actually be the Shiny app, not an error page.
-          curl -s http://localhost:8080 | grep -q "Chess Screenshot" \
-            || { echo "unexpected page content"; docker logs chessvision; exit 1; }
+          # The page must be the app itself, not an error page. These markers
+          # are structural rather than display text: the title is a naming
+          # decision and renaming it should not fail a build, which is exactly
+          # what happened when the app became "Tanmai Chess".
+          #
+          # `board-board` proves the board module actually rendered.
+          # `www/styles.css` proves addResourcePath() ran - a rebuild of the
+          # UI shell once dropped that call, and the app served unstyled HTML
+          # with none of its JS while still returning 200, so response codes
+          # alone do not catch it.
+          page=$(curl -s http://localhost:8080)
+          for marker in 'board-board' 'www/styles.css'; do
+            printf '%s' "$page" | grep -q "$marker" || {
+              echo "unexpected page content: missing '$marker'"
+              docker logs chessvision
+              exit 1
+            }
+          done
           echo "container smoke test passed"
 
       - name: Verify engine and piece sets inside the image
