@@ -513,6 +513,40 @@ body {
   margin-top: 0.5rem;
 }
 
+/* ---- tap to move ------------------------------------------------------- */
+
+/* The squares chessboard.js draws are plain divs, so the highlight goes on
+   them directly. Inset shadow rather than background, so the square's own
+   light/dark colour still reads underneath. */
+.cv-board [data-square].cv-sq-selected {
+  box-shadow: inset 0 0 0 3px var(--cv-accent);
+}
+/* A dot for an empty destination, a ring for a capture - the convention every
+   chess app uses, so it needs no explaining. */
+.cv-board [data-square].cv-sq-target::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28%;
+  height: 28%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--cv-accent);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.cv-board [data-square] {
+  position: relative;
+}
+.cv-board [data-square].cv-sq-target:has(img)::after {
+  width: 88%;
+  height: 88%;
+  background: transparent;
+  border: 4px solid var(--cv-accent);
+  opacity: 0.6;
+}
+
 /* ---- section layouts --------------------------------------------------- */
 
 /* Intake: file input and its options side by side, stacking on narrow. */
@@ -645,5 +679,51 @@ body {
   .cv-card {
     padding: 1rem;
     border-radius: var(--cv-r);
+  }
+  /* The board is the reason to be here; on a phone it should not be a
+     postage stamp beside a full-height eval bar. */
+  .cv-board-wrap {
+    gap: 0.4rem;
+  }
+  .cv-eval-headline {
+    font-size: 1.6rem;
+  }
+  .cv-board-controls .btn {
+    flex: 1 1 auto;
+  }
+}
+
+/* Touch input, regardless of width. A 19px radio is not hittable with a
+   thumb; the accessibility floor for a touch target is about 44px. */
+@media (pointer: coarse) {
+  .btn,
+  .cv-choices .radio label,
+  .cv-choices .form-check label,
+  .form-control,
+  .form-select,
+  .cv-settings > summary {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .form-control,
+  .form-select {
+    display: block;
+  }
+  .cv-choices input[type="radio"],
+  .cv-choices input[type="checkbox"],
+  .form-check-input {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+  .paste-zone {
+    padding: 1.75rem 1rem;
+  }
+  /* Dragging is fiddly on a small board; tapping is the primary interaction,
+     so stop a long-press turning into a text selection or a callout. */
+  .cv-board [data-square] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 }
