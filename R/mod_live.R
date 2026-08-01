@@ -502,8 +502,8 @@ mod_live_server <- function(id, chess_ctx) {
         div(
           class = "cv-radar-controls",
           selectInput(ns("review_rating"), "Explain it for a player rated",
-            c("1100", "1500", "1900"),
-            selected = "1500", width = "200px"
+            c("Estimated from this game" = "auto", "1100", "1500", "1900"),
+            selected = "auto", width = "260px"
           ),
           actionButton(ns("explain"), "Was this predictable?")
         ),
@@ -516,11 +516,47 @@ mod_live_server <- function(id, chess_ctx) {
     # cost you something - the question this answers is whether it was the kind
     # of mistake a player of this strength walks into, which is what makes it
     # worth learning from rather than shrugging off.
+    # One pool of Maia networks per session for rating estimation, built on
+    # first use and kept. Estimating means scoring the same moves under every
+    # network, so they all have to be live at once; three lc0 processes cost
+    # about 23 MB resident between them.
+    rating_pool <- reactiveVal(NULL)
+    session$onSessionEnded(function() maia_pool_stop(isolate(rating_pool())))
+
+    estimated <- function(g, i) {
+      pool <- rating_pool()
+      if (is.null(pool)) {
+        pool <- maia_pool_start()
+        rating_pool(pool)
+      }
+      if (is.null(pool)) {
+        return(NULL)
+      }
+      # Model whoever actually played the move being reviewed, judged on every
+      # move they made in this game. Nothing needs to ask which side the user
+      # is: the move under review already says whose habits are in question.
+      estimate_rating(pool, g$fens, g$ucis, side = fen_turn(g$fens[i]))
+    }
+
     explanation <- eventReactive(input$explain, {
       i <- review()
       g <- game()
       req(!is.null(i), !is.null(g))
-      rating <- as.integer(input$review_rating)
+
+      auto <- identical(input$review_rating, "auto")
+      est <- if (auto) estimated(g, i) else NULL
+      confident <- !is.null(est) && rating_estimate_is_confident(est)
+
+      # Falling back to 1500 when the game has not yet said anything is the
+      # honest move, but it must be visible - silently analysing for a rating
+      # the user did not choose and the game does not support would be the
+      # worst of both.
+      rating <- if (auto) {
+        if (confident) est$rating else 1500L
+      } else {
+        as.integer(input$review_rating)
+      }
+
       if (!human_model_available(rating)) {
         return(list(error = sprintf(
           "The human model is unavailable (it needs lc0 and the maia-%d weights).",
@@ -538,7 +574,11 @@ mod_live_server <- function(id, chess_ctx) {
       if (is.null(rad) || is.na(rad$risk)) {
         return(list(error = "The radar could not assess this position."))
       }
-      list(radar = rad, played = g$ucis[i], fen = g$fens[i], rating = match_maia_rating(rating))
+      list(
+        radar = rad, played = g$ucis[i], fen = g$fens[i],
+        rating = match_maia_rating(rating),
+        estimate = est, auto = auto, estimated_ok = confident
+      )
     })
 
     output$explanation <- renderUI({
@@ -552,6 +592,36 @@ mod_live_server <- function(id, chess_ctx) {
       played_san <- tryCatch(fen_move_to_san(chess_ctx, ex$fen, ex$played),
         error = function(e) NULL
       ) %||% ex$played
+
+      # Where the rating came from, stated plainly. An estimate is evidence,
+      # not a measurement: it is right about 94% of the time when it clears
+      # the confidence bar, and it declines to answer roughly two thirds of
+      # the time, so saying which of those happened matters more than the
+      # number itself.
+      provenance <- if (!isTRUE(ex$auto)) {
+        NULL
+      } else if (isTRUE(ex$estimated_ok)) {
+        est <- ex$estimate
+        tags$p(
+          class = "text-muted cv-radar-caption",
+          sprintf(
+            "Rating estimated at %d from %d of their moves in this game (%.0f%% of the posterior; right about 94%% of the time it is this sure).",
+            est$rating, est$n_moves, 100 * max(est$posterior)
+          )
+        )
+      } else {
+        n <- if (is.null(ex$estimate)) 0L else ex$estimate$n_moves
+        tags$p(
+          class = "text-muted cv-radar-caption",
+          sprintf(
+            paste0(
+              "Their moves so far (%d) do not pin down a rating - either too few, or the kind ",
+              "any strength would have played. Explained for 1500 instead; pick a rating above to override."
+            ),
+            n
+          )
+        )
+      }
 
       verdict <- if (!length(hit)) {
         tags$div(
@@ -595,6 +665,7 @@ mod_live_server <- function(id, chess_ctx) {
       })
 
       tagList(
+        provenance,
         verdict,
         tags$div(
           class = "text-muted cv-radar-caption",

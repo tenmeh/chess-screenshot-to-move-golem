@@ -2,6 +2,22 @@
 
 ## New features
 
+* **The opponent's rating is estimated from their moves.** Reviewing a move no
+  longer starts by asking which strength to explain it for - a question most
+  people cannot answer about an opponent. Each Maia network is a distribution
+  over moves for a rating, so the moves already played are evidence: the
+  network least surprised by them is the most likely one. Choose "Estimated
+  from this game" and the review models whoever actually played the move under
+  review, judged on every move they made.
+
+* The estimate says when it does not know. Picking the most likely of the three
+  networks is right about 75% of the time on its own - better than the 33% of
+  guessing, but not a fact. Requiring enough moves, enough discriminating
+  evidence and a concentrated posterior raises that to about 94%, at the cost
+  of staying silent roughly two thirds of the time, when it says so and falls
+  back to 1500. Accuracy barely improves with more moves, because the limit is
+  how alike the networks are rather than how much data there is.
+
 * **Live game tracking.** Follow a game as it is played rather than analysing
   one frozen position. Share the window you are playing in, or paste a fresh
   screenshot after each move, and the app keeps the running game: the move
