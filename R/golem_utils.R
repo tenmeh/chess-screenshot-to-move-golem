@@ -130,3 +130,61 @@ active_templates_path <- function() {
   custom <- custom_templates_path()
   if (file.exists(custom)) custom else app_sys("app", "templates.rds")
 }
+
+#' Draw the evaluation across a game as an inline SVG
+#'
+#' The drawing half of the evaluation graph; [eval_graph_geometry()] does the
+#' arithmetic. This lives in the app layer rather than beside the tracker
+#' because it is the one place a UI toolkit is needed, and the core is kept
+#' free of one - see `test-core-boundary.R`.
+#'
+#' @param cp Centipawn evaluations from White's point of view, one per position
+#'   (so one more than the number of moves). `NA` where not yet measured.
+#' @param click_input Namespaced Shiny input id to report clicks to, or `NULL`
+#'   for a static graph. Each point reports its own index as `ply`, counting
+#'   the moves played to reach it - so 0 is the opening position, and every
+#'   other value names the move that arrived there.
+#' @param width,height Pixel size of the graph.
+#' @return A `shiny::tags$svg` element, or `NULL` if there is nothing to draw.
+eval_graph_svg <- function(cp, click_input = NULL, width = 420, height = 110) {
+  g <- eval_graph_geometry(cp, width = width, height = height)
+  if (is.null(g)) {
+    return(NULL)
+  }
+
+  hotspots <- if (is.null(click_input)) {
+    list()
+  } else {
+    lapply(seq_len(g$n), function(i) {
+      tags$rect(
+        x = max(0, g$xs[i] - g$hit_width / 2), y = 0,
+        width = g$hit_width, height = height,
+        fill = "transparent", class = "cv-graph-hit",
+        onclick = sprintf(
+          "Shiny.setInputValue('%s', {ply: %d, nonce: Math.random()}, {priority: 'event'})",
+          click_input, i - 1L
+        )
+      )
+    })
+  }
+
+  do.call(tags$svg, c(
+    list(
+      class = "cv-eval-graph", width = width, height = height,
+      viewBox = sprintf("0 0 %d %d", as.integer(width), as.integer(height)),
+      preserveAspectRatio = "none"
+    ),
+    list(
+      tags$polygon(points = g$area, fill = "#2b6cb0", `fill-opacity` = "0.18"),
+      tags$line(
+        x1 = 0, y1 = g$mid, x2 = width, y2 = g$mid,
+        stroke = "#94a3b8", `stroke-dasharray` = "3 3", `stroke-width` = 1
+      ),
+      tags$polyline(
+        points = g$points, fill = "none", stroke = "#2b6cb0",
+        `stroke-width` = 2, `stroke-linejoin` = "round"
+      )
+    ),
+    hotspots
+  ))
+}
