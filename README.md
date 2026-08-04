@@ -139,8 +139,9 @@ position is still loaded onto the board so you can drag the misread piece into
 place, rather than being a dead end.
 
 Piece art is downloaded at runtime for personal use and never redistributed
-with this package - several sets are CC BY-NC-SA or freeware, which do not mix
-with an MIT package. `piece_set_manifest()` records each set's license.
+with this package - several sets are CC BY-NC-SA or freeware, and a
+non-commercial clause does not mix with a free-software licence in either
+direction. `piece_set_manifest()` records each set's licence.
 
 ## Setup
 
@@ -290,3 +291,20 @@ session affinity; and startup CPU boost to shorten cold starts.
   its terms prohibit scraping, so bundling or auto-fetching it would be a
   licensing problem. The one-shot manual calibration is designed for exactly
   this and works for any custom theme.
+
+## Documentation
+
+Full documentation, including a walkthrough of the app and how the Blunder
+Radar and live tracking work:
+<https://tenmeh.github.io/chess-screenshot-to-move-golem/>
+
+## Licence
+
+[AGPL-3.0](LICENSE). Use it, study it, change it, share it. If you distribute
+it - or run a modified copy as a website - the source has to be available under
+the same terms.
+
+Versions up to v1.0.3 were released under MIT and remain available under it.
+
+Third-party components (chess.js, chessboard.js, the piece art, Stockfish, lc0,
+Maia, Poppins) keep their own licences; see [LICENSE.md](LICENSE.md).

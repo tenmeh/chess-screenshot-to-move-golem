@@ -1,0 +1,167 @@
+---
+title: "Getting Started"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+Tanmai Chess reads a chess board from a screenshot and tells you the best move.
+It also does something engines do not: it tells you where a player of a given
+strength is likely to go **wrong**.
+
+Start it with:
+
+```{r}
+library(chessvision)
+run_app()
+```
+
+Or use the deployed copy at
+<https://tanmai-103985161147.us-central1.run.app/>, which already has every
+engine and network built in.
+
+## Overview
+
+The app has two tabs. Nearly everything happens on the first.
+
+| Tab | What it is for |
+| --- | --- |
+| **Analyse** | Read a screenshot, explore the position on a live board, follow a game as you play it |
+| **Piece sets** | Download the Lichess piece sets, or teach the app art it has never seen |
+
+The pipeline underneath is:
+
+```
+screenshot -> 64 squares -> recognise pieces -> FEN -> Stockfish -> best move
+                                                |
+                                                +-> blunder radar
+                                                +-> live game tracking
+```
+
+## 1. Reading a position
+
+Drop a screenshot onto **Read a position**, or click the paste zone and press
+`Ctrl+V`. A file picker is there too.
+
+Three settings sit beside it:
+
+- **Side to move** - a still image cannot show whose turn it is, so it has to be
+  told. (In a tracked game it is worked out for you; see below.)
+- **Orientation** - leave it on *Auto* unless it gets it wrong. Auto decides
+  from where the two armies sit, which is reliable for real positions.
+- **Auto-crop to the board** - trims the surrounding page. Leave it on unless
+  your screenshot is already cropped tight.
+
+Press **Analyse position**. What was read appears beside the screenshot: the
+piece set it matched, which way round it decided the board is, and the FEN.
+
+If the piece set is not one it knows, it says so rather than guessing:
+
+> **Unrecognized piece set.** This board doesn't match any installed piece set
+> well... so the reading below is an unreliable guess.
+
+That usually means a Chess.com or custom theme. Two ways forward: download the
+Lichess sets (§4), or just drag the misread pieces into place on the board -
+the position is loaded there either way.
+
+## 2. Exploring on the board
+
+The recognised position lands on the **Analysis board** automatically. There is
+no button to press.
+
+Move pieces by dragging, or by tapping: tap a piece and its legal destinations
+appear as dots, captures as rings, then tap where it should go. Tapping is
+usually easier on a phone, where a square is about 34 pixels wide.
+
+Alongside the board:
+
+- the **evaluation** and the bar down the left, updating as the search deepens;
+- the engine's **top three lines**;
+- the **move list** and the current **FEN**.
+
+`Flip`, `Undo`, `Start` and `Play best move` are under the board.
+
+## 3. The Blunder Radar
+
+Tick **Show what a human would play** and pick an opponent rating.
+
+An engine tells you what is *best*. The radar answers a different question: of
+the moves a human of this strength might actually pick, which ones cost
+something, and how likely are they? It scores every legal move by
+
+```
+P(a human plays it) x centipawns it loses
+```
+
+using [Maia](https://github.com/CSSLab/maia-chess) for the first term and
+Stockfish for the second.
+
+On the board, the engine's choice is drawn in **blue** and the human moves in
+**orange** or **red**. The arrows are chosen by how much each move contributes
+to the risk, not by how likely it is - in a trap the dangerous move is by
+construction *not* the most likely one.
+
+`vignette("blunder-radar")` goes into how it is scored and how it was tested.
+
+## 4. Piece sets
+
+Open the **Piece sets** tab and press **Download piece sets** once. That fetches
+38 Lichess sets (about 1 MB) into a local cache; screenshots using any of them
+are then recognised with nothing to configure.
+
+For art the app cannot know - Chess.com themes, custom pieces - use **Teach an
+unknown set**: paste a screenshot of that site's *standard starting position*
+and press **Calibrate**. The result joins auto-detection as the `custom` set.
+
+Chess.com's art is deliberately not downloaded: it is proprietary and its terms
+prohibit scraping. Manual calibration exists for exactly this.
+
+## 5. Following a live game
+
+The **Follow a live game** panel tracks a game as it is played.
+
+Press **Share a screen**, choose the window you are playing in, then drag a
+rectangle over the board on the still frame that appears. Mark it roughly on the
+board's edge - a little outside is fine and better than slicing into it.
+
+Or skip sharing entirely and paste a fresh screenshot after each move. Both feed
+the same tracker.
+
+As the game goes on you get the move list, an evaluation for each move, a graph
+across the whole game, and a list of **where the game turned**. Clicking any
+move rewinds the board to just before it and offers to ask the radar whether
+that mistake was predictable.
+
+A position is only added when exactly one sequence of legal moves explains it,
+so misreads and half-drawn animation frames are discarded rather than corrupting
+the record. `vignette("live-tracking")` explains why that one rule does so much
+work.
+
+## 6. Estimating the opponent
+
+When reviewing a move, the strength selector offers **Estimated from this
+game**. Rather than asking you how strong your opponent is, it infers it: each
+Maia network is a distribution over moves, so the network least surprised by
+what they actually played is the most likely one.
+
+It is right about 75% of the time on its own, which is better than guessing
+between three networks but is not a fact. So it declines to answer unless the
+moves genuinely discriminate - then it is right about 94% of the time, and says
+so. When it cannot tell, it says that too and falls back to 1500.
+
+## What it cannot do
+
+- **Whose turn it is** cannot be read from a still image.
+- **En passant** is not inferred, and **castling rights** are assumed only when
+  king and rook are on their home squares.
+- A web page cannot read your screen unprompted or watch the clipboard in the
+  background. Screen capture uses the browser's own permission dialog, and the
+  app's window has to stay visible - browsers throttle timers in hidden tabs.
+- A few Lichess sets are genuinely hard to tell apart because their *own* pieces
+  are nearly identical; `mono`, `letter` and `disguised` are excluded outright.

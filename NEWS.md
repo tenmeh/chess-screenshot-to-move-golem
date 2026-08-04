@@ -1,3 +1,29 @@
+# chessvision 1.1.0
+
+## Licence
+
+* **Now AGPL-3.0** (was MIT). You may still use, study, modify and share this
+  freely - but if you distribute it, or run a modified copy as a website, the
+  source has to be available under the same terms. The "Affero" part is the
+  point for something that is primarily a hosted app: an ordinary GPL lets
+  someone run a changed version as a service and never publish anything.
+
+* Releases up to and including v1.0.3 stay available under MIT. That cannot be
+  withdrawn, and is not being pretended otherwise.
+
+## Documentation
+
+* **A documentation site**, built with pkgdown and published to GitHub Pages:
+  <https://tenmeh.github.io/chess-screenshot-to-move-golem/>. Every exported
+  function has a reference page, grouped by what it is for rather than in one
+  alphabetical wall, and `NEWS.md` becomes the changelog.
+
+* Three articles: a *Getting Started* walkthrough of the app, and one each on
+  how the Blunder Radar is scored and why the live tracker rests on a single
+  legality rule.
+
+* Poppins is served from the site itself rather than from Google's CDN, so
+  reading the docs makes no third-party request.
 # chessvision 1.0.3
 
 ## Bug fixes

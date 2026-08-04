@@ -16,3 +16,6 @@ Thumbs.db
 # Claude Code / agent tooling (not part of the project)
 .claude/
 .agents/
+
+# pkgdown site is built and deployed by CI, not committed
+docs/
