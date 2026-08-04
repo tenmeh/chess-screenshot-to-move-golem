@@ -1,0 +1,103 @@
+---
+title: "The Blunder Radar"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{The Blunder Radar}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+An engine answers "what is best here". That is not the question you have when
+you are about to move. The useful question is "what am I likely to get wrong",
+and the answer depends on who is playing.
+
+## The idea
+
+Two things are already available: how likely a human of a given strength is to
+play each move, and what each move costs. Multiply them.
+
+```
+risk = SUM over moves of  P(a human plays it) x centipawns it loses
+```
+
+The first term comes from [Maia](https://github.com/CSSLab/maia-chess), a
+network trained to predict human moves at a target rating rather than to win.
+The second comes from Stockfish.
+
+A move that hangs a queen but no human would consider carries no risk. A natural
+move that quietly drops a pawn carries a lot. Neither an engine nor a
+human-move model gets you that on its own.
+
+## Why the engine has to be asked directly
+
+The moves a human is likely to blunder into are, by definition, ones the engine
+ranks poorly - so they fall outside an ordinary MultiPV list and would never be
+scored. `evaluate_moves()` uses UCI `searchmoves` to make the engine evaluate
+exactly the candidate moves, whatever it thinks of them:
+
+```{r}
+maia <- maia_session_start(1500)
+risk <- blunder_risk(
+  "r1bqkbnr/pppp1ppp/2n5/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 3 3",
+  maia
+)
+risk$risk
+#> [1] 86.9
+head(risk$moves)
+```
+
+## Does it work?
+
+A risk metric that fires everywhere says nothing, so it was measured against
+known traps *and* a quiet control:
+
+| Position | Risk @1100 | Risk @1900 |
+| --- | ---: | ---: |
+| Legal's mate | 6724 cp | 9192 cp |
+| Scholar's mate | 1673 cp | 998 cp |
+| Blackburne | 90 cp | - |
+| **Starting position** | **3.0 cp** | **3.6 cp** |
+
+Roughly 2000x between a trap and a position where nothing can go wrong. The
+bottom row is the one that makes the rest meaningful.
+
+A result worth noticing: Legal's mate scores **higher** at 1900 than at 1100.
+The stronger player is *more* confident about grabbing the queen - 93.3% versus
+65.7% - so the trap works better on them. That is not something an engine
+evaluation can express.
+
+## The arrows
+
+On the board the engine's choice is blue and the human moves are orange, or red
+where they lose real material. Which moves get an arrow is chosen by **risk
+contribution**, not by raw probability.
+
+That distinction is the whole feature. After `3.Qh5`, Black's losing `Nf6` is
+only the *fourth* most probable reply. Drawing the three most likely moves
+produces three orange arrows and quietly omits the one move worth warning
+about. `radar_arrow_moves()` takes the top contributors and adds the single
+likeliest move for context.
+
+## Trappiness
+
+The same machinery, pointed the other way: for each move *you* could play, how
+badly is the opponent likely to go wrong afterwards?
+
+```{r}
+trappiness(fen, maia, ctx)
+```
+
+`practical` is what the move is likely to win you from their mistakes, minus
+what it costs you objectively. A slightly inferior move that sets a problem
+they will probably fail can be the better practical choice.
+
+## Requirements
+
+The radar needs lc0 and the Maia weights. On Windows `ensure_maia()` fetches
+both. There is no official Linux build of lc0, so the container image compiles
+it from source - see the `Dockerfile`. Without them the app still runs and the
+radar reports that the human model is unavailable rather than failing.

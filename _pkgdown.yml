@@ -1,0 +1,214 @@
+url: https://tenmeh.github.io/chess-screenshot-to-move-golem/
+
+template:
+  bootstrap: 5
+  light-switch: true
+  default-theme: light
+  bslib:
+    # The site's accent is the app's accent, so the docs and the thing they
+    # document do not look like different products.
+    primary: "#1f9d61"
+    # Set as plain Sass variables rather than through bslib's font helpers:
+    # Poppins is served from pkgdown/fonts by @font-face in extra.css, so
+    # there is nothing for bslib to fetch or bundle.
+    font-family-base: "Poppins, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    headings-font-family: "Poppins, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-family-monospace: "'JetBrains Mono', 'SF Mono', 'Cascadia Mono', Consolas, monospace"
+    headings-font-weight: 600
+    border-radius: "0.6rem"
+
+home:
+  title: Tanmai Chess
+  description: >
+    Screenshot a chess board, get the best move - and get told where a player of
+    a given strength is about to go wrong.
+  sidebar:
+    structure: [links, license, citation, authors, dev]
+    components:
+      links:
+        title: Links
+        text: |
+          [Live app](https://tanmai-103985161147.us-central1.run.app/)
+
+navbar:
+  structure:
+    left: [intro, concepts, reference, news]
+    right: [search, lightswitch, github]
+  components:
+    intro:
+      text: Getting Started
+      href: articles/tanmai-chess.html
+    concepts:
+      text: How it works
+      menu:
+        - text: The Blunder Radar
+          href: articles/blunder-radar.html
+        - text: Following a live game
+          href: articles/live-tracking.html
+    reference:
+      text: Reference
+      href: reference/index.html
+    news:
+      text: Changelog
+      href: news/index.html
+    github:
+      icon: fa-github fa-lg
+      href: https://github.com/tenmeh/chess-screenshot-to-move-golem
+      aria-label: GitHub repository
+
+reference:
+  - title: Running the app
+    desc: Entry points and the Shiny modules the interface is built from.
+    contents:
+      - run_app
+      - starts_with("mod_")
+      - app_ui
+      - app_server
+      - cv_theme
+      - cv_brand
+      - cv_section_title
+
+  - title: Reading a board
+    desc: >
+      Screenshot to FEN: cropping and splitting the image, matching pieces
+      against template libraries, working out which way round the board is, and
+      assembling a position.
+    contents:
+      - recognize_position
+      - prepare_board
+      - autocrop_board
+      - split_board
+      - split_squares
+      - classify_square
+      - recognize_symbols
+      - recognize_symbols_auto
+      - template_matrix
+      - build_fen
+      - grid_to_placement
+      - infer_castling
+      - resolve_orientation
+      - detect_flip
+      - detect_flip_piece_mass
+      - detect_flip_start_brightness
+      - fix_template_colour_swap
+      - resolve_calibration_flip
+
+  - title: Piece sets and calibration
+    desc: >
+      The bundled cburnett set, the Lichess sets fetched on demand, and teaching
+      the recognizer art it has never seen.
+    contents:
+      - piece_set_manifest
+      - available_piece_sets
+      - fetch_piece_set
+      - setup_piece_sets
+      - build_set_templates
+      - build_from_start_position
+      - load_template_library
+      - load_all_template_libraries
+      - save_template_library
+      - render_position
+      - piece_svg_path
+      - read_piece_image
+      - piece_set_path
+      - piece_set_ext
+      - piece_sets_dir
+      - piece_theme_base
+      - active_templates_path
+      - custom_templates_path
+      - set_templates_path
+
+  - title: Engines
+    desc: >
+      Stockfish over UCI, both one-shot and as a session that keeps searching,
+      plus the chess.js bridge used for legality and SAN.
+    contents:
+      - best_move_uci
+      - ensure_stockfish
+      - find_local_engine
+      - stockfish_bin_dir
+      - engine_session_start
+      - engine_session_analyse
+      - engine_session_poll
+      - engine_session_eval
+      - engine_session_stop
+      - parse_info_line
+      - parse_uci_score
+      - format_score
+      - eval_bar_pct
+      - wait_for_line
+      - new_chess_context
+      - validate_fen
+      - is_valid_fen
+      - legal_moves
+      - fen_after_move
+      - fen_move_to_san
+      - fen_placement
+      - fen_with_turn
+      - fen_turn
+      - same_position
+
+  - title: The human model
+    desc: >
+      Maia run through lc0, and what it is used for: scoring how likely a
+      mistake is, and inferring how strong the opponent is from what they
+      played.
+    contents:
+      - maia_dir
+      - maia_weights_path
+      - match_maia_rating
+      - find_lc0
+      - ensure_maia
+      - human_model_available
+      - maia_session_start
+      - maia_session_stop
+      - human_move_probabilities
+      - parse_policy_lines
+      - blunder_risk
+      - evaluate_moves
+      - score_to_cp
+      - trappiness
+      - radar_arrow_moves
+      - maia_pool_start
+      - maia_pool_stop
+      - move_log_likelihood
+      - rating_posterior
+      - estimate_rating
+      - rating_estimate_is_confident
+
+  - title: Following a game
+    desc: >
+      Turning a stream of screenshots into a game: the legality gate that
+      decides what counts as a move, and the summaries built on top of it.
+    contents:
+      - game_new
+      - game_apply_move
+      - game_current_fen
+      - game_ply
+      - game_accept
+      - track_observation
+      - find_move_paths
+      - move_quality
+      - game_move_losses
+      - game_turning_points
+      - format_loss
+      - eval_graph_geometry
+      - eval_graph_svg
+
+  - title: Internals
+    desc: Helpers that support the above.
+    contents:
+      - app_sys
+      - golem_add_external_resources
+      - image_input_ui
+      - latest_image_input
+      - decode_data_url_image
+      - to_gray_matrix
+      - normalize_vec
+      - sq_background
+      - sq_core
+      - sq_energy
+      - sq_idx
+      - squares_mean_brightness
+      - label_ink
+      - chessvision-package

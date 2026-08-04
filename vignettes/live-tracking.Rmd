@@ -1,0 +1,104 @@
+---
+title: "Following a live game"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Following a live game}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+Analysing one frozen position is useful. Following a game as it happens is more
+useful, and much harder, because the input is a stream of imperfect readings of
+a board that is sometimes mid-animation.
+
+## The one rule
+
+A position joins the game only when **exactly one sequence of legal moves
+explains how it got there**.
+
+That single gate replaces a pile of filters:
+
+- a misread square produces a position no legal move reaches, so it is rejected;
+- a frame caught mid-animation is not a legal successor either, so it is
+  rejected;
+- a ply that was never captured on screen is recovered, because a two-move
+  sequence explains the jump;
+- castling, en passant and promotion are handled correctly for free, because
+  chess.js generates the moves rather than a square-by-square diff guessing at
+  what changed.
+
+```{r}
+ctx <- new_chess_context()
+game <- game_new()
+res <- track_observation(ctx, game, observed_fen, max_plies = 2)
+res$status
+#> [1] "accepted"
+game <- game_accept(ctx, game, res)
+```
+
+The ambiguity requirement matters as much as the legality one. If *two*
+different move sequences could explain a new position, the reading is not used
+- guessing which one happened would silently corrupt the record, and a tracker
+that invents moves is worse than one that admits it lost the thread. Readings
+that cannot be explained are counted and shown, not quietly dropped.
+
+## Orientation and turn, settled by the game
+
+A screenshot cannot show whose move it is, and can be ambiguous about which way
+round the board is. Rather than guess from pixels, both candidate readings go
+through the same gate, and the one that continues the game legally is the one
+that was right.
+
+This is why the live tracker needs no "side to move" control while a game is
+running, when analysing a single screenshot does.
+
+## Cost
+
+Recognition is not free, so frames are compared in the browser and only a
+settled, changed picture is sent to the server - roughly one recognition per
+move rather than one per tick.
+
+Searching deeper for missing plies costs more than it sounds: a 2-ply search
+takes about 0.12 s, a 3-ply search about 4.8 s. The UI caps at 2 for that
+reason.
+
+## What a browser can actually do
+
+Capture uses `getDisplayMedia`: the browser's own dialog, one explicit choice of
+screen, window or tab, and the board marked once by dragging over a still frame.
+
+Mark the region roughly on the board's edge. It is grown outward slightly before
+use, because slicing *into* the board is fatal to recognition - cutting 2 px in
+takes match quality from 0.94 to 0.17. A very loose region fails differently:
+past a margin of about 5% the edge detection stops finding the board at all.
+
+Two things a web page genuinely cannot do, and which are not pretended at here:
+
+- **read the screen unprompted** - there is always a permission dialog;
+- **watch the clipboard in the background** - `navigator.clipboard.read()` is
+  refused unless the document has focus, which it will not have while you are
+  playing in another window.
+
+So pasting a screenshot after each move is offered as a first-class mode rather
+than a fallback. It goes through the identical path.
+
+One practical constraint: the app's window has to stay visible. Browsers
+throttle timers in hidden tabs, which stalls the capture loop.
+
+## Reviewing the game
+
+Once there are moves, three views open up:
+
+- an **evaluation graph** across the whole game;
+- **where the game turned** - the moves that cost the most;
+- clicking any move rewinds the board to just before it, and offers to ask the
+  Blunder Radar whether that mistake was predictable.
+
+That last one is where this and the radar meet. After `3.Qh5 Nf6` it reports
+that a 1500 player plays `Nf6` here 6% of the time and that it is the single
+largest source of risk in the position - what the move cost, and why it was
+tempting, together.
