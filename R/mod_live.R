@@ -66,6 +66,27 @@ mod_live_ui <- function(id) {
           tags$span(class = "cv-dropzone-title", "...or paste after each move"),
           tags$span(class = "cv-dropzone-hint", "Click here, then Ctrl+V")
         ),
+        # A finished game is the same object as a watched one, so importing it
+        # belongs here rather than in a section of its own: everything below -
+        # the graph, the turning points, the radar review - then works on it
+        # unchanged.
+        tags$details(
+          class = "cv-settings cv-pgn-entry",
+          tags$summary("...or import a game from PGN"),
+          div(
+            class = "cv-settings-body",
+            textAreaInput(
+              ns("pgn_text"), NULL,
+              placeholder = "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 ...",
+              rows = 5, width = "100%", resize = "vertical"
+            ),
+            div(
+              class = "cv-actions",
+              actionButton(ns("load_pgn"), "Import game", class = "btn-primary")
+            ),
+            uiOutput(ns("pgn_status"))
+          )
+        ),
         tags$details(
           class = "cv-settings",
           tags$summary("Tracking settings"),
@@ -167,7 +188,7 @@ mod_live_server <- function(id, chess_ctx) {
       review(NULL)
       ledger(ledger()[0, ])
       if (identical(input$anchor, "start")) {
-        g <- score_positions(game_new(CV_START_FEN, turn_pinned = TRUE))
+        g <- scored(game_new(CV_START_FEN, turn_pinned = TRUE))
         game(g)
         note("new", "tracking from the standard starting position")
         push_board(g, NULL)
@@ -189,16 +210,75 @@ mod_live_server <- function(id, chess_ctx) {
 
     max_plies <- reactive(as.integer(input$max_plies %||% "2"))
 
+    # ---- importing a finished game ---------------------------------------
+
+    pgn_note <- reactiveVal(NULL)
+
+    observeEvent(input$load_pgn, {
+      res <- game_from_pgn(chess_ctx, input$pgn_text %||% "")
+      if (!is.null(res$error)) {
+        pgn_note(list(ok = FALSE, text = res$error))
+        return()
+      }
+
+      pinned_flip(NULL)
+      review(NULL)
+      ledger(ledger()[0, ])
+      # Deliberately not scored inline: an imported game arrives entirely
+      # unevaluated, and `scored()` takes only a budget's worth before handing
+      # the rest to the observer above. The board and the move list appear at
+      # once; the graph fills in behind them.
+      g <- scored(res$game)
+      game(g)
+      pgn_note(list(ok = TRUE, text = pgn_summary(res$headers, res$n_moves)))
+      note("new", sprintf("imported %d plies from PGN", res$n_moves))
+      # Set the final position outright rather than replaying the game move by
+      # move. Playing them exists to keep the browser's move history in step
+      # when plies are appended to a game already on the board; an import
+      # replaces the board entirely, so there is nothing to stay in step with -
+      # and animating forty-five moves to arrive somewhere the user can reach
+      # by clicking any move in the list is just a delay.
+      push_board(g, NULL)
+    })
+
+    output$pgn_status <- renderUI({
+      n <- pgn_note()
+      if (is.null(n)) {
+        return(NULL)
+      }
+      tags$div(
+        class = sprintf(
+          "alert alert-%s cv-radar-summary", if (isTRUE(n$ok)) "success" else "warning"
+        ),
+        n$text
+      )
+    })
+    outputOptions(output, "pgn_status", suspendWhenHidden = FALSE)
+
     # ---- evaluation ------------------------------------------------------
 
-    # Fill in any position of the game that has not been scored yet. Normally
-    # that is the one or two just added, so this stays bounded and quick.
+    # How many positions one pass through the scorer may evaluate. Watching a
+    # game live adds a ply or two at a time, so the cap never bites there. It
+    # exists for imports: a PGN arrives with the whole game unscored at once,
+    # and Shiny is single-threaded, so evaluating fifty positions in one call
+    # would freeze the entire app for the duration - about eleven seconds for a
+    # forty-move game. Capped, each pass is well under a second and the graph
+    # fills in visibly while everything stays usable.
+    SCORE_BUDGET <- 6L
+
+    #' Score up to `SCORE_BUDGET` unevaluated positions, oldest first.
+    #'
+    #' Returns the game and whether anything is still outstanding, so the
+    #' caller can come back for the rest rather than blocking here.
     score_positions <- function(g) {
       if (is.null(g) || is.null(scorer)) {
-        return(g)
+        return(list(game = g, pending = FALSE))
       }
-      for (i in seq_along(g$fens)) {
-        if (!is.na(g$cp[i])) next
+      todo <- which(is.na(g$cp))
+      if (!length(todo)) {
+        return(list(game = g, pending = FALSE))
+      }
+      for (i in utils::head(todo, SCORE_BUDGET)) {
         e <- tryCatch(engine_session_eval(scorer, g$fens[i], movetime_ms = 250L),
           error = function(err) NULL
         )
@@ -208,8 +288,36 @@ mod_live_server <- function(id, chess_ctx) {
         g$cp[i] <- if (identical(turn, "b")) -e$cp else e$cp
         g$best[i] <- e$best
       }
-      g
+      list(game = g, pending = anyNA(g$cp))
     }
+
+    # Whether positions are still waiting to be scored. Drives the observer
+    # below, which comes back for the rest.
+    scoring_pending <- reactiveVal(FALSE)
+
+    scored <- function(g) {
+      res <- score_positions(g)
+      scoring_pending(isTRUE(res$pending))
+      res$game
+    }
+
+    # Keep working through an import a budget at a time. Reads `game()` under
+    # isolate() deliberately: depending on it as well would make every write
+    # here re-trigger this observer immediately, and the pair would spin
+    # instead of stepping. The only real dependency is the pending flag, and
+    # each pass either clears it or leaves strictly less to do.
+    observe({
+      if (!isTRUE(scoring_pending())) {
+        return()
+      }
+      invalidateLater(120, session)
+      g <- isolate(game())
+      if (is.null(g)) {
+        scoring_pending(FALSE)
+        return()
+      }
+      game(scored(g))
+    })
 
     push_board <- function(g, moves) {
       msg <- list(
@@ -255,7 +363,7 @@ mod_live_server <- function(id, chess_ctx) {
           return(note("invalid", "the position read is not a legal one"))
         }
         pinned_flip(isTRUE(res$flip))
-        g <- score_positions(game_new(res$fen, turn_pinned = FALSE))
+        g <- scored(game_new(res$fen, turn_pinned = FALSE))
         game(g)
         note("anchor", sprintf("anchored on the position read (%s on the bottom)",
           if (res$flip) "black" else "white"
@@ -296,7 +404,7 @@ mod_live_server <- function(id, chess_ctx) {
       if (length(moved) == 1L) {
         acc <- moved[[1]]
         pinned_flip(acc$flip)
-        g <- score_positions(game_accept(chess_ctx, g, acc))
+        g <- scored(game_accept(chess_ctx, g, acc))
         game(g)
         note("move", sprintf(
           "%s (%s)",
