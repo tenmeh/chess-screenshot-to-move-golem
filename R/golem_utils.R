@@ -5,7 +5,7 @@
 #' @param ... Path components relative to inst/.
 #' @return The full path returned by [system.file()] for this package.
 app_sys <- function(...) {
-  system.file(..., package = "chessvision")
+  system.file(..., package = "tanmai")
 }
 
 #' Register static resource paths and add css/js includes
@@ -26,7 +26,7 @@ golem_add_external_resources <- function() {
   add_resource_path("chessjs", app_sys("js"))
   # Cache-bust our own assets on every package version so an upgrade can't
   # leave a browser running last version's CSS/JS against new markup.
-  v <- paste0("?v=", utils::packageVersion("chessvision"))
+  v <- paste0("?v=", utils::packageVersion("tanmai"))
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "www/chessboard-1.0.0.min.css"),
     tags$link(rel = "stylesheet", type = "text/css", href = paste0("www/styles.css", v)),
@@ -117,7 +117,7 @@ decode_data_url_image <- function(data_url) {
 #' @return The RDS path where a manual calibration is persisted across
 #'   restarts.
 custom_templates_path <- function() {
-  dir <- tools::R_user_dir("chessvision", "config")
+  dir <- tools::R_user_dir("tanmai", "config")
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   file.path(dir, "templates_custom.rds")
 }

@@ -5,10 +5,10 @@ where a player of a given strength is about to go wrong.
 
 Named for Tanmay and [Maia](https://github.com/CSSLab/maia-chess), the
 human-move network most of the interesting parts are built on. The R package
-inside is called `chessvision`.
+inside is called `tanmai`.
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/tenmeh/chess-screenshot-to-move-golem/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/tenmeh/chess-screenshot-to-move-golem/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/tenmeh/tanmai/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/tenmeh/tanmai/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 A [golem](https://thinkr-open.github.io/golem/)-structured R Shiny app.
@@ -170,7 +170,7 @@ shiny::runApp(shiny::shinyApp(ui = app_ui, server = app_server))
 or, once installed as a package:
 
 ```r
-chessvision::run_app()
+tanmai::run_app()
 ```
 
 ## Tests
@@ -231,8 +231,8 @@ R-code-only platforms (shinyapps.io, whose bundles cannot ship or execute a
 binary). It ships as a container:
 
 ```bash
-docker build -t chessvision .
-docker run --rm -p 8080:8080 chessvision   # then open http://localhost:8080
+docker build -t tanmai .
+docker run --rm -p 8080:8080 tanmai   # then open http://localhost:8080
 ```
 
 The image installs Stockfish from apt, builds lc0 from source in a separate
@@ -240,7 +240,7 @@ stage, bakes in the three Maia networks, and pre-builds every piece-set
 template - so a cold start needs no downloads and nothing depends on a writable
 filesystem. R package versions come from `renv.lock`, so the image and local
 development cannot drift apart. `app.R` is the entrypoint and honours `$PORT`.
-`CHESSVISION_STOCKFISH`, `CHESSVISION_LC0` and `CHESSVISION_MAIA_DIR` override
+`TANMAI_STOCKFISH`, `TANMAI_LC0` and `TANMAI_MAIA_DIR` override
 the engine and weights locations.
 
 `docker-build.yaml` builds the image on every push and pull request, boots it,
@@ -279,7 +279,7 @@ session affinity; and startup CPU boost to shorten cold starts.
   numbers.
 - Live capture needs a current browser over HTTPS or localhost, and the app's
   window has to stay visible, because browsers throttle timers in a hidden tab.
-- Stockfish and piece sets download to `tools::R_user_dir("chessvision",
+- Stockfish and piece sets download to `tools::R_user_dir("tanmai",
   "cache")` on first use - needs an internet connection once.
 - A few Lichess sets are hard on template matching because their *own* pieces
   are nearly identical: `firi`'s black and white rooks are 98% similar, with
@@ -296,7 +296,7 @@ session affinity; and startup CPU boost to shorten cold starts.
 
 Full documentation, including a walkthrough of the app and how the Blunder
 Radar and live tracking work:
-<https://tenmeh.github.io/chess-screenshot-to-move-golem/>
+<https://tenmeh.github.io/tanmai/>
 
 ## Licence
 

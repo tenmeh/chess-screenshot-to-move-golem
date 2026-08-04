@@ -41,7 +41,7 @@ app_ui <- function(request) {
     bslib::nav_item(
       tags$a(
         class = "cv-navlink",
-        href = "https://github.com/tenmeh/chess-screenshot-to-move-golem",
+        href = "https://github.com/tenmeh/tanmai",
         target = "_blank", rel = "noopener",
         "Source"
       )
@@ -53,10 +53,13 @@ app_ui <- function(request) {
 #' Wordmark for the navbar
 #'
 #' "Tanmai" is Tanmay and Maia run together - the author, and the human-move
-#' network the Blunder Radar is built on. The R package stays `chessvision`:
-#' that name is an implementation detail nobody using the app ever sees, and
-#' renaming it would touch the NAMESPACE, the Dockerfile's build-time checks
-#' and every internal call for no user-visible gain.
+#' network the Blunder Radar and the rating estimator are both built on. The
+#' package, the repository and the Cloud Run service all carry it, so there is
+#' one name rather than three.
+#'
+#' The package was called `chessvision` until 1.2.0. That collided with
+#' Chessvision.ai, a well-known browser extension doing the same job - board
+#' recognition from a screenshot - which is a poor name to publish under.
 #'
 #' @return A Shiny tag.
 cv_brand <- function() {

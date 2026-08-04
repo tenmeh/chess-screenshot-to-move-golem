@@ -2,7 +2,7 @@
 % Please edit documentation in R/run_app.R
 \name{run_app}
 \alias{run_app}
-\title{Run the chessvision Shiny application}
+\title{Run the tanmai Shiny application}
 \usage{
 run_app(...)
 }
@@ -13,5 +13,5 @@ run_app(...)
 Called for its side effect; runs the Shiny app.
 }
 \description{
-Run the chessvision Shiny application
+Run the tanmai Shiny application
 }

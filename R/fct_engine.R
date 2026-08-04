@@ -1,4 +1,4 @@
-# Stockfish engine: download + UCI communication (port of chessvision/engine.py).
+# Stockfish engine: download + UCI communication (port of tanmai/engine.py).
 
 STOCKFISH_ASSETS_WINDOWS <- c(
   "https://github.com/official-stockfish/Stockfish/releases/download/sf_17/stockfish-windows-x86-64.zip",
@@ -15,7 +15,7 @@ STOCKFISH_ASSETS_MAC <- c(
 #'
 #' @return The cache directory path (created if needed).
 stockfish_bin_dir <- function() {
-  dir <- tools::R_user_dir("chessvision", "cache")
+  dir <- tools::R_user_dir("tanmai", "cache")
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   dir
 }
@@ -30,7 +30,7 @@ stockfish_bin_dir <- function() {
 #' @return The path to the binary, or `NULL` if none is present.
 find_local_engine <- function() {
   # Respect an explicit override first, then anything on PATH.
-  configured <- Sys.getenv("CHESSVISION_STOCKFISH", "")
+  configured <- cfg_env("STOCKFISH")
   if (nzchar(configured) && file.exists(configured)) {
     return(configured)
   }

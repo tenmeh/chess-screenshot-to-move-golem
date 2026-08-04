@@ -1,6 +1,6 @@
 # Board detection: screenshot -> 64 square images, plus orientation.
 #
-# Port of chessvision/detect.py. Note the local convention: gray matrices here
+# Port of tanmai/detect.py. Note the local convention: gray matrices here
 # are indexed mat[x, y] (x = width/column, y = height/row, both 1-based, y = 1
 # is the TOP of the image) - this is what magick::image_data() returns, the
 # transpose of numpy's row/column convention used in the Python original.

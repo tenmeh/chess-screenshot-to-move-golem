@@ -1,12 +1,12 @@
-Package: chessvision
+Package: tanmai
 Title: Chess Board Screenshot to Best Move
-Version: 1.1.0
+Version: 1.2.0
 Authors@R: person("tenmeh", email = "81738153+tenmeh@users.noreply.github.com", role = c("aut", "cre"))
 Description: A golem Shiny app that reads a chess board screenshot (drag-drop
     or clipboard paste), recognizes the position with template matching, and
     suggests the best move via a local Stockfish engine.
-URL: https://tenmeh.github.io/chess-screenshot-to-move-golem/, https://github.com/tenmeh/chess-screenshot-to-move-golem
-BugReports: https://github.com/tenmeh/chess-screenshot-to-move-golem/issues
+URL: https://tenmeh.github.io/tanmai/, https://github.com/tenmeh/tanmai
+BugReports: https://github.com/tenmeh/tanmai/issues
 License: AGPL (>= 3)
 Language: en-US
 Encoding: UTF-8
@@ -25,6 +25,7 @@ Imports:
     utils,
     stats
 Suggests:
+    withr,
     knitr,
     rmarkdown,
     pkgload,

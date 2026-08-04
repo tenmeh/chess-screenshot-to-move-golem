@@ -371,7 +371,7 @@
   }
 
   // ---- Shiny message handlers -------------------------------------------
-  Shiny.addCustomMessageHandler("chessvision-board-create", function (msg) {
+  Shiny.addCustomMessageHandler("tanmai-board-create", function (msg) {
     // The container may not exist yet when the tab has never been shown.
     var tries = 0;
     (function attempt() {
@@ -426,9 +426,9 @@
     sendState(msg.container);
   }
 
-  Shiny.addCustomMessageHandler("chessvision-board-set", applySet);
+  Shiny.addCustomMessageHandler("tanmai-board-set", applySet);
 
-  Shiny.addCustomMessageHandler("chessvision-board-undo", function (msg) {
+  Shiny.addCustomMessageHandler("tanmai-board-undo", function (msg) {
     var st = boards[msg.container];
     if (!st) return;
     st.game.undo();
@@ -436,7 +436,7 @@
     sendState(msg.container);
   });
 
-  Shiny.addCustomMessageHandler("chessvision-board-flip", function (msg) {
+  Shiny.addCustomMessageHandler("tanmai-board-flip", function (msg) {
     var st = boards[msg.container];
     if (!st) return;
     st.board.flip();
@@ -447,7 +447,7 @@
   // Accepts one move or several. The live tracker sends several when it had to
   // infer a ply it never saw on screen; playing them in turn keeps this board's
   // own history complete, which a jump to the final position would not.
-  Shiny.addCustomMessageHandler("chessvision-board-move", function (msg) {
+  Shiny.addCustomMessageHandler("tanmai-board-move", function (msg) {
     var st = boards[msg.container];
     if (!st) return;
     var list = msg.ucis || msg.uci;
@@ -469,11 +469,11 @@
     sendState(msg.container);
   });
 
-  Shiny.addCustomMessageHandler("chessvision-board-arrows", function (msg) {
+  Shiny.addCustomMessageHandler("tanmai-board-arrows", function (msg) {
     drawArrows(msg.container, msg.arrows);
   });
 
-  Shiny.addCustomMessageHandler("chessvision-evalbar", function (msg) {
+  Shiny.addCustomMessageHandler("tanmai-evalbar", function (msg) {
     var w = document.getElementById(msg.white_id);
     var b = document.getElementById(msg.black_id);
     if (!w || !b) return;

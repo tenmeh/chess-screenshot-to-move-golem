@@ -1,5 +1,5 @@
 # Assemble a FEN from a recognized 8x8 grid of piece symbols.
-# Port of chessvision/fen.py.
+# Port of tanmai/fen.py.
 
 #' Convert a 64-symbol grid to a FEN piece-placement field
 #'
