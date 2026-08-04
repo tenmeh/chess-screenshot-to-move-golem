@@ -10,7 +10,7 @@
 ^\.gitignore$
 ^_pkgdown\.yml$
 ^app\.R$
-^chessvision\.Rproj$
+^chess-golem.Rproj$
 ^data-raw$
 ^dev$
 ^docs$

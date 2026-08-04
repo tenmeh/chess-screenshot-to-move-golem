@@ -1,4 +1,4 @@
-# chessvision: chess screenshot -> best move.
+# tanmai: chess screenshot -> best move.
 #
 # Everything the app needs at runtime is baked in here, because container
 # filesystems are ephemeral and often read-only: the chess engine comes from
@@ -87,15 +87,15 @@ RUN apt-get update -o Acquire::Retries=5 \
 # of a non-interactive session.
 ENV PATH="/usr/games:${PATH}"
 
-# lc0 and the Maia networks, from the build stage above. CHESSVISION_MAIA_DIR
+# lc0 and the Maia networks, from the build stage above. TANMAI_MAIA_DIR
 # pins where maia_dir() looks, rather than letting it resolve under the user
 # cache - that depends on HOME, which is not dependable in a container that
 # may run as an arbitrary uid.
 COPY --from=lc0build /src/build/lc0 /usr/local/bin/lc0
 COPY --from=lc0build /weights/ /opt/maia/
-ENV CHESSVISION_MAIA_DIR=/opt/maia
+ENV TANMAI_MAIA_DIR=/opt/maia
 
-WORKDIR /srv/chessvision
+WORKDIR /srv/tanmai
 
 # renv.lock is the single source of truth for R package versions - the same
 # file `renv::snapshot()` maintains for local dev - copied in on its own so
@@ -108,7 +108,7 @@ COPY renv.lock renv.lock
 # the explicit `library` argument below). This is deliberate: renv isolates
 # an active project's library and - critically - hides the plain
 # site-library once a project is "activated" but not yet in sync, which is
-# exactly what broke `library(chessvision)` here previously (chessvision
+# exactly what broke `library(tanmai)` here previously (tanmai
 # itself is installed by a plain R CMD INSTALL below, into that same plain
 # site-library, bypassing renv entirely). Using renv purely as a one-shot,
 # build-time installer sidesteps that: nothing here ever activates renv as a
@@ -126,8 +126,8 @@ RUN R CMD INSTALL --no-multiarch --with-keep.source . \
 # ~38 sets from lichess.org on first use and lose them again on the next cold
 # start. Failing softly keeps the image buildable if lichess is unreachable -
 # the bundled cburnett set always works.
-RUN Rscript -e "library(chessvision); \
-      ready <- tryCatch(chessvision:::setup_piece_sets(), error = function(e) { \
+RUN Rscript -e "library(tanmai); \
+      ready <- tryCatch(tanmai:::setup_piece_sets(), error = function(e) { \
         message('piece-set prefetch skipped: ', conditionMessage(e)); logical(0) }); \
       message(sprintf('piece sets baked in: %d', sum(ready)))"
 
@@ -137,21 +137,21 @@ RUN Rscript -e "library(chessvision); \
 # silently degrades to "human model unavailable" in production is exactly the
 # failure this stage exists to catch. Asserting on a real policy query - the
 # probabilities must be non-empty and sum to 1 - is what makes it meaningful.
-RUN Rscript -e "library(chessvision); \
-      stopifnot(!is.null(chessvision:::find_local_engine())); \
-      sets <- chessvision:::available_piece_sets(); \
-      message(sprintf('engine: %s', chessvision:::find_local_engine())); \
+RUN Rscript -e "library(tanmai); \
+      stopifnot(!is.null(tanmai:::find_local_engine())); \
+      sets <- tanmai:::available_piece_sets(); \
+      message(sprintf('engine: %s', tanmai:::find_local_engine())); \
       message(sprintf('piece sets available: %d', length(sets))); \
       stopifnot(length(sets) >= 1); \
-      message(sprintf('lc0: %s', chessvision:::find_lc0())); \
-      stopifnot(!is.null(chessvision:::find_lc0())); \
-      for (r in chessvision:::MAIA_RATINGS) \
-        stopifnot(chessvision:::human_model_available(r)); \
-      sess <- chessvision:::maia_session_start(1500); \
+      message(sprintf('lc0: %s', tanmai:::find_lc0())); \
+      stopifnot(!is.null(tanmai:::find_lc0())); \
+      for (r in tanmai:::MAIA_RATINGS) \
+        stopifnot(tanmai:::human_model_available(r)); \
+      sess <- tanmai:::maia_session_start(1500); \
       stopifnot(!is.null(sess)); \
-      pol <- chessvision:::human_move_probabilities(sess, \
+      pol <- tanmai:::human_move_probabilities(sess, \
         'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'); \
-      chessvision:::maia_session_stop(sess); \
+      tanmai:::maia_session_stop(sess); \
       message(sprintf('maia-1500 policy: %d moves, top %s at %.1f%%', \
         nrow(pol), pol\$move[1], 100 * pol\$prob[1])); \
       stopifnot(nrow(pol) == 20, abs(sum(pol\$prob) - 1) < 0.02)"
@@ -160,4 +160,4 @@ RUN Rscript -e "library(chessvision); \
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["Rscript", "/srv/chessvision/app.R"]
+CMD ["Rscript", "/srv/tanmai/app.R"]

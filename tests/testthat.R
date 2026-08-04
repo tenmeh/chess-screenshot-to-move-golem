@@ -1,4 +1,4 @@
 library(testthat)
-library(chessvision)
+library(tanmai)
 
-test_check("chessvision")
+test_check("tanmai")

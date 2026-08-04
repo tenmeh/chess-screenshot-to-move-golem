@@ -30,7 +30,7 @@ jobs:
           context: .
           push: false
           load: true
-          tags: chessvision:ci
+          tags: tanmai:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -38,7 +38,7 @@ jobs:
       # trusting that a successful build implies a working image.
       - name: Smoke test the container
         run: |
-          docker run -d --name chessvision -p 8080:8080 chessvision:ci
+          docker run -d --name tanmai -p 8080:8080 tanmai:ci
           for i in $(seq 1 60); do
             if curl -sf -o /dev/null http://localhost:8080; then
               echo "app responded after ${i}s"
@@ -49,7 +49,7 @@ jobs:
           done
           if [ -z "${READY:-}" ]; then
             echo "app did not respond in time; container logs:"
-            docker logs chessvision
+            docker logs tanmai
             exit 1
           fi
           # The page must be the app itself, not an error page. These markers
@@ -66,7 +66,7 @@ jobs:
           for marker in 'board-board' 'www/styles.css'; do
             printf '%s' "$page" | grep -q "$marker" || {
               echo "unexpected page content: missing '$marker'"
-              docker logs chessvision
+              docker logs tanmai
               exit 1
             }
           done
@@ -74,15 +74,15 @@ jobs:
 
       - name: Verify engine and piece sets inside the image
         run: |
-          docker exec chessvision Rscript -e "
-            library(chessvision);
-            engine <- chessvision:::find_local_engine();
+          docker exec tanmai Rscript -e "
+            library(tanmai);
+            engine <- tanmai:::find_local_engine();
             stopifnot(!is.null(engine));
             cat('engine:', engine, '\n');
-            sets <- chessvision:::available_piece_sets();
+            sets <- tanmai:::available_piece_sets();
             cat('piece sets:', length(sets), '\n');
             stopifnot(length(sets) >= 1);
-            res <- chessvision:::best_move_uci(
+            res <- tanmai:::best_move_uci(
               'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
               movetime_ms = 500);
             cat('engine returned:', res\$move, '\n');
@@ -91,4 +91,4 @@ jobs:
 
       - name: Stop container
         if: always()
-        run: docker rm -f chessvision || true
+        run: docker rm -f tanmai || true

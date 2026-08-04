@@ -3,7 +3,7 @@
 # Note: each @importFrom tag must fit on a single line - roxygen2 rejects a
 # wrapped one - so magick's imports are split across several tags.
 
-#' chessvision: Chess Board Screenshot to Best Move
+#' tanmai: Chess Board Screenshot to Best Move
 #'
 #' A golem Shiny app that reads a chess board screenshot (drag-drop or clipboard
 #' paste), recognizes the position with template matching against multiple piece

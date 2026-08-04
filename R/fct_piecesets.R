@@ -72,7 +72,7 @@ piece_set_ext <- function(dir) {
 #'
 #' @return The piece-sets cache directory path (created if needed).
 piece_sets_dir <- function() {
-  dir <- file.path(tools::R_user_dir("chessvision", "cache"), "piece_sets")
+  dir <- file.path(tools::R_user_dir("tanmai", "cache"), "piece_sets")
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   dir
 }

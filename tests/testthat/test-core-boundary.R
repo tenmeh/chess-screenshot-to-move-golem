@@ -29,7 +29,7 @@ find_pkg_r_dir <- function() {
     r_dir <- file.path(dir, "R")
     if (file.exists(desc) && dir.exists(r_dir)) {
       pkg <- tryCatch(read.dcf(desc, "Package")[[1]], error = function(e) NA_character_)
-      if (identical(pkg, "chessvision")) {
+      if (identical(pkg, "tanmai")) {
         return(r_dir)
       }
     }

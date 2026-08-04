@@ -1,4 +1,4 @@
-#' Run the chessvision Shiny application
+#' Run the tanmai Shiny application
 #'
 #' @param ... Arguments passed to [golem::with_golem_options()].
 #' @return Called for its side effect; runs the Shiny app.

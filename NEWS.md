@@ -1,4 +1,36 @@
-# chessvision 1.1.0
+# tanmai 1.2.0
+
+## Renamed
+
+* **The package is now `tanmai`, not `chessvision`.** The old name collided
+  with Chessvision.ai, a well-established browser extension that does the same
+  job - reading a chess board from a screenshot. Publishing under a name
+  already owned by a known product in the same problem space is a bad idea
+  generally, and a worse one with CRAN in mind.
+
+* The repository moved to `tenmeh/tanmai` for the same reason. GitHub redirects
+  the old address, so existing clones and links keep working, but the
+  documentation site is now at <https://tenmeh.github.io/tanmai/>.
+
+* One name across the package, the repository, the app and the Cloud Run
+  service, where there were three.
+
+* `library(chessvision)` no longer works; use `library(tanmai)`. Earlier
+  releases keep the old name and are unaffected.
+
+* Cached downloads move with the name, from `R_user_dir("chessvision")` to
+  `R_user_dir("tanmai")`. Stockfish, lc0, the Maia weights and any downloaded
+  piece sets are fetched again on first use. They are all re-downloadable, so
+  nothing is lost except the bandwidth - the old directory can be deleted.
+
+* `CHESSVISION_STOCKFISH`, `CHESSVISION_LC0` and `CHESSVISION_MAIA_DIR` are now
+  `TANMAI_*`, **and the old names are still honoured**. Dropping them would
+  have broken any container or shell profile that sets them, and broken it
+  silently: each one falls back to behaviour that looks perfectly normal -
+  searching `PATH` for the engine, looking in the user cache for the weights -
+  so the only symptom would be the radar quietly reporting itself unavailable.
+
+# tanmai 1.1.0
 
 ## Licence
 
@@ -14,7 +46,7 @@
 ## Documentation
 
 * **A documentation site**, built with pkgdown and published to GitHub Pages:
-  <https://tenmeh.github.io/chess-screenshot-to-move-golem/>. Every exported
+  <https://tenmeh.github.io/tanmai/>. Every exported
   function has a reference page, grouped by what it is for rather than in one
   alphabetical wall, and `NEWS.md` becomes the changelog.
 
@@ -24,7 +56,7 @@
 
 * Poppins is served from the site itself rather than from Google's CDN, so
   reading the docs makes no third-party request.
-# chessvision 1.0.3
+# tanmai 1.0.3
 
 ## Bug fixes
 
@@ -38,7 +70,7 @@
   now tied to the specific square and expires on its own, so a stale one can
   only ever suppress a repeat press on the same square.
 
-# chessvision 1.0.2
+# tanmai 1.0.2
 
 ## Bug fixes
 
@@ -50,7 +82,7 @@
   chessboard.js's own drop callback instead of waiting for a click that comes
   too late. Dragging is unaffected.
 
-# chessvision 1.0.1
+# tanmai 1.0.1
 
 ## Bug fixes
 
@@ -69,7 +101,7 @@
   screenshot appeared to do nothing. The board is only scrolled to when it is
   actually off screen, so nothing moves under you on a desktop.
 
-# chessvision 1.0.0
+# tanmai 1.0.0
 
 ## New features
 

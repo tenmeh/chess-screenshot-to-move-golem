@@ -127,7 +127,7 @@ mod_board_server <- function(id, chess_ctx, incoming = reactive(NULL)) {
     # Create the client-side board once the session is up.
     session$onFlushed(
       function() {
-        session$sendCustomMessage("chessvision-board-create", list(
+        session$sendCustomMessage("tanmai-board-create", list(
           container = board_id,
           stateInput = state_input,
           fen = START_FEN,
@@ -173,13 +173,13 @@ mod_board_server <- function(id, chess_ctx, incoming = reactive(NULL)) {
       ucis <- if (is.list(msg)) msg$ucis %||% msg$uci else NULL
       if (!is.null(ucis) && !is.null(msg$prev_fen) &&
         same_position(isolate(current_fen()), msg$prev_fen)) {
-        session$sendCustomMessage("chessvision-board-move", list(
+        session$sendCustomMessage("tanmai-board-move", list(
           container = board_id, ucis = as.list(ucis)
         ))
         return()
       }
 
-      session$sendCustomMessage("chessvision-board-set", list(
+      session$sendCustomMessage("tanmai-board-set", list(
         container = board_id,
         fen = fen,
         orientation = if (is.list(msg) && !is.null(msg$orientation)) msg$orientation else "white"
@@ -187,20 +187,20 @@ mod_board_server <- function(id, chess_ctx, incoming = reactive(NULL)) {
     })
 
     observeEvent(input$flip, {
-      session$sendCustomMessage("chessvision-board-flip", list(container = board_id))
+      session$sendCustomMessage("tanmai-board-flip", list(container = board_id))
     })
     observeEvent(input$undo, {
-      session$sendCustomMessage("chessvision-board-undo", list(container = board_id))
+      session$sendCustomMessage("tanmai-board-undo", list(container = board_id))
     })
     observeEvent(input$reset, {
-      session$sendCustomMessage("chessvision-board-set", list(
+      session$sendCustomMessage("tanmai-board-set", list(
         container = board_id, fen = START_FEN, orientation = "white"
       ))
     })
     observeEvent(input$play_best, {
       s <- snap()
       req(!is.null(s), length(s$lines) > 0)
-      session$sendCustomMessage("chessvision-board-move", list(
+      session$sendCustomMessage("tanmai-board-move", list(
         container = board_id, uci = s$lines[[1]]$first
       ))
     })
@@ -245,7 +245,7 @@ mod_board_server <- function(id, chess_ctx, incoming = reactive(NULL)) {
       } else {
         eval_bar_pct(s$lines[[1]]$cp, s$lines[[1]]$mate, turn())
       }
-      session$sendCustomMessage("chessvision-evalbar", list(
+      session$sendCustomMessage("tanmai-evalbar", list(
         white_id = ns("evalbar_white"),
         black_id = ns("evalbar_black"),
         pct = pct
@@ -290,7 +290,7 @@ mod_board_server <- function(id, chess_ctx, incoming = reactive(NULL)) {
           }
         }
       }
-      session$sendCustomMessage("chessvision-board-arrows", list(
+      session$sendCustomMessage("tanmai-board-arrows", list(
         container = board_id, arrows = arrows
       ))
     })

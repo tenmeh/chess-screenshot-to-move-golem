@@ -1,4 +1,4 @@
-# Template-based piece recognition (port of chessvision/recognize.py).
+# Template-based piece recognition (port of tanmai/recognize.py).
 #
 # Each square is matched in background-subtracted form: the background is
 # estimated from the square's own four corners, then subtracted, so board

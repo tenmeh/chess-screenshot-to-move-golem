@@ -1,4 +1,4 @@
-url: https://tenmeh.github.io/chess-screenshot-to-move-golem/
+url: https://tenmeh.github.io/tanmai/
 
 template:
   bootstrap: 5
@@ -53,7 +53,7 @@ navbar:
       href: news/index.html
     github:
       icon: fa-github fa-lg
-      href: https://github.com/tenmeh/chess-screenshot-to-move-golem
+      href: https://github.com/tenmeh/tanmai
       aria-label: GitHub repository
 
 reference:
@@ -199,6 +199,7 @@ reference:
     desc: Helpers that support the above.
     contents:
       - app_sys
+      - cfg_env
       - golem_add_external_resources
       - image_input_ui
       - latest_image_input
@@ -211,4 +212,4 @@ reference:
       - sq_idx
       - squares_mean_brightness
       - label_ink
-      - chessvision-package
+      - tanmai-package

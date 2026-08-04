@@ -10,7 +10,7 @@ maia_dir()
 The directory path (created if needed).
 }
 \description{
-Honours \code{CHESSVISION_MAIA_DIR}, which container images set to a fixed path.
+Honours \code{TANMAI_MAIA_DIR}, which container images set to a fixed path.
 The default resolves under the user cache, which depends on \code{HOME} - fine
 for local development, but fragile in a container that may run as an
 arbitrary uid whose home is not where the build put the weights.

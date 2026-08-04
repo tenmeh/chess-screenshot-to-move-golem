@@ -22,18 +22,18 @@ MAIA_WEIGHTS_BASE <-
 
 #' Directory holding lc0 and the Maia weight files
 #'
-#' Honours `CHESSVISION_MAIA_DIR`, which container images set to a fixed path.
+#' Honours `TANMAI_MAIA_DIR`, which container images set to a fixed path.
 #' The default resolves under the user cache, which depends on `HOME` - fine
 #' for local development, but fragile in a container that may run as an
 #' arbitrary uid whose home is not where the build put the weights.
 #'
 #' @return The directory path (created if needed).
 maia_dir <- function() {
-  configured <- Sys.getenv("CHESSVISION_MAIA_DIR", "")
+  configured <- cfg_env("MAIA_DIR")
   dir <- if (nzchar(configured)) {
     configured
   } else {
-    file.path(tools::R_user_dir("chessvision", "cache"), "maia")
+    file.path(tools::R_user_dir("tanmai", "cache"), "maia")
   }
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   dir
@@ -47,7 +47,7 @@ maia_dir <- function() {
 #'
 #' @return Path to lc0, or `NULL` if it is not available.
 find_lc0 <- function() {
-  configured <- Sys.getenv("CHESSVISION_LC0", "")
+  configured <- cfg_env("LC0")
   if (nzchar(configured) && file.exists(configured)) {
     return(configured)
   }

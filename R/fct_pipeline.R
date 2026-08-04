@@ -1,5 +1,5 @@
 # End-to-end: board image -> recognized position, with auto orientation.
-# Port of chessvision/pipeline.py.
+# Port of tanmai/pipeline.py.
 
 #' Resolve board orientation
 #'
