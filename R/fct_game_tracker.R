@@ -484,3 +484,121 @@ eval_graph_geometry <- function(cp, width = 420, height = 110) {
     hit_width = if (n == 1) width else width / (n - 1)
   )
 }
+
+#' Build a tracked game from PGN
+#'
+#' Parsing PGN properly is a real job - disambiguated SAN, comments, variations,
+#' numeric annotation glyphs, games that start from a set-up position - and
+#' chess.js already does it. It is embedded here anyway, for legality and SAN,
+#' so this hands the text to `loadPgn()` and then walks the resulting history to
+#' record the position before every move.
+#'
+#' The result is the same shape [game_new()] produces, which is the point: an
+#' imported game is indistinguishable from one watched move by move, so the
+#' evaluation graph, the turning points, the Blunder Radar review and the rating
+#' estimator all work on it with no code of their own.
+#'
+#' A `[FEN]` header is honoured, so a study or an endgame that does not begin
+#' from the initial position imports correctly rather than being silently
+#' replayed from the standard start.
+#'
+#' @param ctx A chess.js V8 context from [new_chess_context()].
+#' @param pgn PGN text, with or without headers.
+#' @return A list with `game` (a record as from [game_new()]), `headers` (named
+#'   character, possibly empty) and `n_moves`; or a list with `error` when the
+#'   text could not be parsed.
+game_from_pgn <- function(ctx, pgn) {
+  if (!length(pgn) || !nzchar(trimws(paste(pgn, collapse = "\n")))) {
+    return(list(error = "No PGN supplied."))
+  }
+  ctx$assign("pgnText", paste(pgn, collapse = "\n"))
+
+  raw <- ctx$eval("
+    (function () {
+      var g = new ChessCtor();
+      try {
+        g.loadPgn(pgnText);
+      } catch (e) {
+        return JSON.stringify({error: String(e && e.message ? e.message : e)});
+      }
+      var verbose = g.history({verbose: true});
+      if (!verbose.length) {
+        return JSON.stringify({error: 'The PGN parsed but contains no moves.'});
+      }
+      // Replay from the start of *this* game, which a [FEN] header may have
+      // moved: rewinding the loaded game with undo() would be equivalent but
+      // loses the header handling.
+      var headers = g.header ? g.header() : {};
+      var start = headers.FEN || headers.Fen || null;
+      var walk = start ? new ChessCtor(start) : new ChessCtor();
+      var fens = [walk.fen()];
+      var ucis = [];
+      var sans = [];
+      for (var i = 0; i < verbose.length; i++) {
+        var m = verbose[i];
+        sans.push(m.san);
+        ucis.push(m.from + m.to + (m.promotion ? m.promotion : ''));
+        walk.move(m.san);
+        fens.push(walk.fen());
+      }
+      return JSON.stringify({
+        fens: fens, ucis: ucis, sans: sans, headers: headers
+      });
+    })()
+  ")
+
+  parsed <- tryCatch(jsonlite::fromJSON(raw), error = function(e) NULL)
+  if (is.null(parsed)) {
+    return(list(error = "The PGN could not be read."))
+  }
+  if (!is.null(parsed$error)) {
+    return(list(error = parsed$error))
+  }
+
+  n <- length(parsed$ucis)
+  game <- list(
+    fens = as.character(parsed$fens),
+    ucis = as.character(parsed$ucis),
+    sans = as.character(parsed$sans),
+    # Evaluations are filled in afterwards, a few plies at a time, so importing
+    # a long game does not stall the app while an engine works through it.
+    cp = rep(NA_real_, n + 1L),
+    best = rep(NA_character_, n + 1L),
+    turn_pinned = TRUE
+  )
+
+  headers <- parsed$headers
+  if (is.null(headers) || !length(headers)) headers <- character(0)
+
+  list(game = game, headers = unlist(headers), n_moves = n)
+}
+
+#' A one-line description of an imported game
+#'
+#' @param headers Headers from [game_from_pgn()].
+#' @param n_moves Number of plies.
+#' @return A single string, or `NULL` when the headers say nothing useful.
+pgn_summary <- function(headers, n_moves) {
+  # `headers` is a named character vector, where `[[` on an absent name is an
+  # error rather than NULL - unlike a list. Most real PGNs omit at least one of
+  # these, so the membership test is what stops an ordinary game crashing the
+  # import. "?" is PGN's own placeholder for unknown and is not a name.
+  get <- function(k) {
+    if (!length(headers) || !(k %in% names(headers))) {
+      return(NULL)
+    }
+    v <- unname(headers[[k]])
+    if (is.na(v) || !nzchar(v) || identical(v, "?")) NULL else v
+  }
+  players <- if (!is.null(get("White")) || !is.null(get("Black"))) {
+    sprintf("%s vs %s", get("White") %||% "?", get("Black") %||% "?")
+  } else {
+    NULL
+  }
+  bits <- c(players, get("Event"), get("Date"), get("Result"))
+  bits <- bits[!vapply(bits, is.null, logical(1))]
+  if (!length(bits)) {
+    return(sprintf("%d moves", ceiling(n_moves / 2)))
+  }
+  paste0(paste(bits, collapse = " - "), sprintf(" (%d plies)", n_moves))
+}

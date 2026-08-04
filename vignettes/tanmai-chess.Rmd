@@ -70,6 +70,13 @@ That usually means a Chess.com or custom theme. Two ways forward: download the
 Lichess sets (§4), or just drag the misread pieces into place on the board -
 the position is loaded there either way.
 
+### Already have the FEN?
+
+Then recognition is a step to skip. Open **...or paste a FEN** under the
+Analyse button, paste it, and press Load. The clocks and castling fields can be
+left off. A FEN that cannot be read is reported with the specific field that is
+wrong, rather than silently doing nothing.
+
 ## 2. Exploring on the board
 
 The recognised position lands on the **Analysis board** automatically. There is
@@ -142,6 +149,18 @@ A position is only added when exactly one sequence of legal moves explains it,
 so misreads and half-drawn animation frames are discarded rather than corrupting
 the record. `vignette("live-tracking")` explains why that one rule does so much
 work.
+
+### Importing a finished game
+
+**...or import a game from PGN** takes a game you already have. Paste it, press
+Import, and the whole game loads: the move list, the evaluation graph, where it
+turned, and the radar review on any move.
+
+Headers, comments, annotation glyphs and variations are all handled, and a
+`[FEN]` header is respected, so a study or an endgame is not silently replayed
+from the standard opening position. The evaluations fill in over a few seconds
+rather than all at once, so the app stays responsive while an engine works
+through the game.
 
 ## 6. Estimating the opponent
 

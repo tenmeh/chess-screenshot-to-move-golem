@@ -727,3 +727,29 @@ body {
     user-select: none;
   }
 }
+
+/* ---- FEN / PGN entry --------------------------------------------------- */
+
+.cv-fen-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.cv-fen-row .form-group {
+  flex: 1 1 auto;
+  margin-bottom: 0;
+  min-width: 0;
+}
+.cv-fen-row input {
+  font-family: var(--cv-mono);
+  font-size: 0.8rem;
+}
+.cv-fen-entry,
+.cv-pgn-entry {
+  margin-top: 0.75rem;
+}
+.cv-pgn-entry textarea {
+  font-family: var(--cv-mono);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}

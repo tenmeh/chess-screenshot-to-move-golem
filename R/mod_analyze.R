@@ -35,6 +35,25 @@ mod_analyze_ui <- function(id) {
       class = "cv-actions",
       actionButton(ns("analyze"), "Analyse position", class = "btn-primary btn-lg")
     ),
+    # Already have the position as text? Then recognition is a step to skip,
+    # not a step to endure.
+    tags$details(
+      class = "cv-settings cv-fen-entry",
+      tags$summary("...or paste a FEN"),
+      div(
+        class = "cv-settings-body",
+        div(
+          class = "cv-fen-row",
+          textInput(
+            ns("fen_text"), NULL,
+            placeholder = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            width = "100%"
+          ),
+          actionButton(ns("load_fen"), "Load", class = "btn-primary")
+        ),
+        uiOutput(ns("fen_status"))
+      )
+    ),
     div(
       class = "cv-readout",
       div(
@@ -170,6 +189,43 @@ mod_analyze_server <- function(id, chess_ctx) {
       tagList(pieces)
     })
     outputOptions(output, "result", suspendWhenHidden = FALSE)
+
+    # ---- loading a position from FEN --------------------------------------
+
+    fen_error <- reactiveVal(NULL)
+
+    observeEvent(input$load_fen, {
+      txt <- trimws(input$fen_text %||% "")
+      if (!nzchar(txt)) {
+        fen_error("Paste a FEN first.")
+        return()
+      }
+      # chess.js fills in the fields people habitually leave off - castling,
+      # en passant, the clocks - so accept a four-field FEN rather than
+      # rejecting what every website copies to the clipboard.
+      check <- tryCatch(validate_fen(chess_ctx, txt), error = function(e) NULL)
+      if (is.null(check) || !isTRUE(check$ok)) {
+        fen_error(check$error %||% "That is not a position chess.js can read.")
+        return()
+      }
+      fen_error(NULL)
+      to_board(list(
+        fen = txt,
+        orientation = if (identical(fen_turn(txt), "b")) "black" else "white",
+        nonce = stats::runif(1)
+      ))
+    })
+
+    output$fen_status <- renderUI({
+      err <- fen_error()
+      if (is.null(err)) {
+        return(NULL)
+      }
+      # chess.js's own message says which field is wrong, which is more use
+      # than a generic "invalid FEN".
+      tags$div(class = "alert alert-warning cv-radar-summary", err)
+    })
+    outputOptions(output, "fen_status", suspendWhenHidden = FALSE)
 
     to_board
   })

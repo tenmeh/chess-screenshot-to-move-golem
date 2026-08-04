@@ -15,6 +15,10 @@ mod_live_server(id, chess_ctx)
 A reactive carrying a position for the interactive board: a list
 with \code{fen}, \code{orientation}, \code{nonce} and, when a single move was inferred,
 \code{uci} and \code{prev_fen} so the board can play it rather than jump.
+Score up to \code{SCORE_BUDGET} unevaluated positions, oldest first.
+
+Returns the game and whether anything is still outstanding, so the
+caller can come back for the rest rather than blocking here.
 }
 \description{
 Live game tracking server

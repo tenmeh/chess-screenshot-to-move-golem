@@ -1,34 +1,30 @@
-# tanmai 1.2.1
+# tanmai 1.3.0
+
+## New features
+
+* **Load a position from FEN.** If you already have the position as text,
+  recognition is a step to skip rather than endure. Paste it under *Read a
+  position* and it goes straight to the board. A four-field FEN is accepted -
+  chess.js fills in the clocks - and a bad one is reported with chess.js's own
+  message, which says *which* field is wrong instead of just "invalid".
+
+* **Import a game from PGN.** Paste a game and the whole thing loads: move
+  list, evaluation graph, where it turned, and the Blunder Radar review on any
+  move. Headers, comments, annotation glyphs and variations are all handled,
+  and a `[FEN]` header is honoured so a study or endgame is not silently
+  replayed from the standard opening position.
+
+  An imported game is the same object as one watched move by move, which is
+  why none of the analysis needed writing twice.
 
 ## Bug fixes
 
-* **The app no longer starts up with an empty board.** A single `selectInput`
-  pulled in Shiny's selectize widget, which loads two scripts; when either one
-  404s, selectize throws out of `initShiny()` *before* it opens the websocket,
-  so the whole app dies quietly with a board that never draws any pieces.
-  Reloading a few times appeared to "fix" it because the assets came back.
-
-  On Cloud Run that 404 happens intermittently by design: Shiny registers its
-  asset prefixes when it renders the UI, so an instance that has just started
-  and has not served a UI request yet returns 404 for them. A two-option
-  dropdown gains nothing from selectize, so it is now a plain `<select>` and
-  cannot fail this way.
-
-* **"Unrecognized piece set" no longer fires on screenshots that were read
-  perfectly.** The confidence gate used the *worst-matching* square, which
-  turned out to measure how precisely the board was cropped rather than
-  whether the piece set is known. Recognition shrugs off a small crop offset -
-  the right template still wins every square - but the worst square's score
-  falls off a cliff: a 280px board cropped one pixel short reads all 64 squares
-  correctly and scored 0.44, under the old 0.60 gate. Since the board edge is
-  only ever found to within a pixel or two, that warned on nearly every real
-  screenshot.
-
-  The gate is now the *typical* (median) square instead, which barely moves
-  under the same offset (0.82) and still collapses for art the app has never
-  seen - because then it is not one square that fails to match but most of
-  them. Verified both ways: every correctly-read board scores at least 0.795,
-  and every held-out piece set at most 0.740.
+* Evaluating a game no longer blocks the app. The scorer worked through every
+  unscored position in one pass - fine for the ply or two a live observation
+  adds, but an imported game arrives with all of it unscored, and forty-odd
+  positions at a quarter-second each would have frozen Shiny's single thread
+  for about eleven seconds. It now does a few per pass and comes back for the
+  rest, so the graph fills in while the app stays usable.
 
 # tanmai 1.2.0
 
@@ -88,6 +84,7 @@
 
 * Poppins is served from the site itself rather than from Google's CDN, so
   reading the docs makes no third-party request.
+
 # tanmai 1.0.3
 
 ## Bug fixes
