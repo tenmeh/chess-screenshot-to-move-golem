@@ -137,10 +137,10 @@ mod_analyze_server <- function(id, chess_ctx) {
           tags$p(
             class = "text-muted",
             sprintf(
-              "(best-guess set %s, match confidence low: margin %.3f, weakest square %.2f)",
+              "(best-guess set %s, match confidence low: margin %.3f, typical square %.2f)",
               res$set,
               ifelse(is.na(res$set_margin), 0, res$set_margin),
-              res$set_min_occ
+              res$set_median_occ
             )
           ),
           tags$p(tags$em("Best guess FEN (likely wrong):")),

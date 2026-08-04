@@ -80,10 +80,19 @@ mod_live_ui <- function(id) {
               selected = "start"
             ),
             sliderInput(ns("interval"), "Check every (seconds)", 0.5, 5, 1.2, step = 0.1),
+            # selectize = FALSE deliberately. Shiny's selectize widget pulls in
+            # selectize.min.js *and* selectize-plugin-a11y.min.js, and if either
+            # 404s the binding throws out of initShiny() before it opens the
+            # websocket - so the whole app silently dies with an empty board.
+            # That is not hypothetical: on Cloud Run the a11y plugin
+            # intermittently 404s, because Shiny registers those asset prefixes
+            # when it renders the UI and a freshly-started instance that has not
+            # served a UI request yet does not have them. A two-option dropdown
+            # gains nothing from selectize; a plain <select> cannot fail this way.
             selectInput(
               ns("max_plies"), "Tolerate missing",
               c("nothing - one move at a time" = "1", "one frame - up to two plies" = "2"),
-              selected = "2"
+              selected = "2", selectize = FALSE
             )
           )
         )

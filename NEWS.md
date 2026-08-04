@@ -1,3 +1,35 @@
+# tanmai 1.2.1
+
+## Bug fixes
+
+* **The app no longer starts up with an empty board.** A single `selectInput`
+  pulled in Shiny's selectize widget, which loads two scripts; when either one
+  404s, selectize throws out of `initShiny()` *before* it opens the websocket,
+  so the whole app dies quietly with a board that never draws any pieces.
+  Reloading a few times appeared to "fix" it because the assets came back.
+
+  On Cloud Run that 404 happens intermittently by design: Shiny registers its
+  asset prefixes when it renders the UI, so an instance that has just started
+  and has not served a UI request yet returns 404 for them. A two-option
+  dropdown gains nothing from selectize, so it is now a plain `<select>` and
+  cannot fail this way.
+
+* **"Unrecognized piece set" no longer fires on screenshots that were read
+  perfectly.** The confidence gate used the *worst-matching* square, which
+  turned out to measure how precisely the board was cropped rather than
+  whether the piece set is known. Recognition shrugs off a small crop offset -
+  the right template still wins every square - but the worst square's score
+  falls off a cliff: a 280px board cropped one pixel short reads all 64 squares
+  correctly and scored 0.44, under the old 0.60 gate. Since the board edge is
+  only ever found to within a pixel or two, that warned on nearly every real
+  screenshot.
+
+  The gate is now the *typical* (median) square instead, which barely moves
+  under the same offset (0.82) and still collapses for art the app has never
+  seen - because then it is not one square that fails to match but most of
+  them. Verified both ways: every correctly-read board scores at least 0.795,
+  and every held-out piece set at most 0.740.
+
 # tanmai 1.2.0
 
 ## Renamed
