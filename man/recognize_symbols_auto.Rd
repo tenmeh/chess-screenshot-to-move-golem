@@ -14,8 +14,9 @@ every locally available set).}
 }
 \value{
 A list with \code{symbols} (from the winning set), \code{set}, \code{scores}
-(per-set mean similarity), \code{margin} (winner minus runner-up), \code{min_occ}
-(worst occupied-square match) and \code{confident} (whether both gates pass).
+(per-set mean similarity), \code{margin} (winner minus runner-up),
+\code{median_occ} (typical occupied-square match) and \code{confident} (whether both
+gates pass).
 }
 \description{
 Scores every square against every template of every installed set in a

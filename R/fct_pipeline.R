@@ -65,7 +65,7 @@ resolve_orientation <- function(ctx, symbols, turn, flip_hint, manual = "auto") 
 #' @return A list describing the recognition: `board_img`, `symbols`,
 #'   `display_symbols` (white-bottom frame matching `fen`), `fen`, `placement`,
 #'   `flip`, `flip_detected`, `flip_source`, `valid`, `set`, `set_scores`,
-#'   `set_confident`, `set_margin` and `set_min_occ`.
+#'   `set_confident`, `set_margin` and `set_median_occ`.
 recognize_position <- function(image, libs = load_all_template_libraries(),
                                ctx, turn = "w", autocrop = TRUE,
                                orientation = "auto") {
@@ -92,6 +92,6 @@ recognize_position <- function(image, libs = load_all_template_libraries(),
     set_scores = rec$scores,
     set_confident = rec$confident,
     set_margin = rec$margin,
-    set_min_occ = rec$min_occ
+    set_median_occ = rec$median_occ
   )
 }

@@ -9,10 +9,10 @@ CORNER <- MARGIN + 4L # 10
 PIECE_SYMBOLS <- c("P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k")
 
 # Confidence gates for auto-detection (empirically calibrated; see
-# recognize_symbols_auto). Known sets clear both by a wide margin even after
-# jpeg/scale/blur degradation; an unknown piece set fails both.
-MARGIN_GATE <- 0.06 # winner-vs-runnerup separation (known >=0.12, unknown <0.01)
-MIN_OCC_GATE <- 0.60 # worst occupied-square match (known >=0.88, unknown <=0.40)
+# recognize_symbols_auto). Known sets clear both even after scale/offset
+# degradation; an unknown piece set fails both.
+MARGIN_GATE <- 0.08 # winner-vs-runnerup separation (known >=0.107, unknown <=0.066)
+MEDIAN_OCC_GATE <- 0.78 # typical occupied-square match (known >=0.795, unknown <=0.740)
 
 #' Estimate a square's background level from its four corners
 #'
@@ -210,8 +210,9 @@ template_matrix <- function(libs) {
 #' @param libs Named list of template libraries to score against (default:
 #'   every locally available set).
 #' @return A list with `symbols` (from the winning set), `set`, `scores`
-#'   (per-set mean similarity), `margin` (winner minus runner-up), `min_occ`
-#'   (worst occupied-square match) and `confident` (whether both gates pass).
+#'   (per-set mean similarity), `margin` (winner minus runner-up),
+#'   `median_occ` (typical occupied-square match) and `confident` (whether both
+#'   gates pass).
 recognize_symbols_auto <- function(squares, libs = load_all_template_libraries()) {
   if (length(libs) == 0) stop("no template libraries available")
 
@@ -227,8 +228,8 @@ recognize_symbols_auto <- function(squares, libs = load_all_template_libraries()
   set_scores <- numeric(length(libs))
   names(set_scores) <- names(libs)
   set_symbols <- list()
-  set_min_occ <- numeric(length(libs))
-  names(set_min_occ) <- names(libs)
+  set_median_occ <- numeric(length(libs))
+  names(set_median_occ) <- names(libs)
 
   for (name in names(libs)) {
     cols <- which(meta$set == name)
@@ -243,7 +244,7 @@ recognize_symbols_auto <- function(squares, libs = load_all_template_libraries()
     # Mean similarity over occupied squares; a set that can't see any pieces
     # can't win.
     set_scores[name] <- if (any(occupied)) mean(best_sim[occupied]) else -Inf
-    set_min_occ[name] <- if (any(occupied)) min(best_sim[occupied]) else -Inf
+    set_median_occ[name] <- if (any(occupied)) stats::median(best_sim[occupied]) else -Inf
   }
 
   scores <- sort(set_scores, decreasing = TRUE)
@@ -253,19 +254,29 @@ recognize_symbols_auto <- function(squares, libs = load_all_template_libraries()
   #    true set is installed one set wins decisively (>=0.12); when it isn't,
   #    every set fits the garbage equally and margin collapses (<0.01).
   #    Renderer-independent, but needs >=2 sets installed.
-  #  - min_occ: worst per-square match for the winning set. Known sets explain
-  #    every occupied square well (>=0.88 even degraded); an unknown set leaves
-  #    some square badly unmatched (<=0.4). Works with any number of sets.
+  #  - median_occ: typical per-square match for the winning set. Works with any
+  #    number of sets.
+  #
+  # This was originally the *worst* per-square match, which turned out to
+  # measure board alignment rather than piece-set identity. Recognition tolerates
+  # a small crop offset happily - the arg-max template still wins every square -
+  # but the worst square's score falls off a cliff: a 280px board cropped one
+  # pixel short reads all 64 squares correctly and scores 0.44, well under the
+  # old 0.60 gate. Since the crop is only ever accurate to a pixel or two, that
+  # warned on almost every real screenshot. The median moves hardly at all
+  # (0.82 in the same case) while still collapsing for art we have never seen,
+  # because then it is not one square that fails to match but most of them.
   margin <- if (length(scores) >= 2) scores[1] - scores[2] else NA_real_
-  min_occ <- set_min_occ[best_set]
-  confident <- (is.na(margin) || margin >= MARGIN_GATE) && (min_occ >= MIN_OCC_GATE)
+  median_occ <- set_median_occ[best_set]
+  confident <- (is.na(margin) || margin >= MARGIN_GATE) &&
+    (median_occ >= MEDIAN_OCC_GATE)
 
   list(
     symbols = set_symbols[[best_set]],
     set = best_set,
     scores = scores,
     margin = margin,
-    min_occ = unname(min_occ),
+    median_occ = unname(median_occ),
     confident = confident
   )
 }
