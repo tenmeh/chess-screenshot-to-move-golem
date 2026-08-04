@@ -13,13 +13,20 @@ inside is called `tanmai`.
 
 A [golem](https://thinkr-open.github.io/golem/)-structured R Shiny app.
 
+Three ways in, one analysis behind them:
+
 ```
-screenshot -> 64 squares -> recognize pieces -> FEN -> Stockfish -> best move
-                                                |
-                                                +-> interactive board, live eval
-                                                +-> blunder radar (what a human gets wrong)
-                                                +-> live game tracking
+screenshot -> 64 squares -> recognize pieces --+
+FEN --------------------------------------->  +--> position --> Stockfish --> best move
+                                                                          +-> blunder radar
+PGN ----------------------------------------------> whole game -----------+-> eval graph,
+                                                                              turning points
 ```
+
+A screenshot needs recognising; a FEN skips straight past it. A PGN produces a
+whole game, which is the same object the live tracker builds - so the graph, the
+turning points and the radar review work on an imported game without knowing it
+was imported.
 
 ## The Blunder Radar
 
