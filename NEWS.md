@@ -1,3 +1,31 @@
+# tanmai 1.3.0
+
+## New features
+
+* **Load a position from FEN.** If you already have the position as text,
+  recognition is a step to skip rather than endure. Paste it under *Read a
+  position* and it goes straight to the board. A four-field FEN is accepted -
+  chess.js fills in the clocks - and a bad one is reported with chess.js's own
+  message, which says *which* field is wrong instead of just "invalid".
+
+* **Import a game from PGN.** Paste a game and the whole thing loads: move
+  list, evaluation graph, where it turned, and the Blunder Radar review on any
+  move. Headers, comments, annotation glyphs and variations are all handled,
+  and a `[FEN]` header is honoured so a study or endgame is not silently
+  replayed from the standard opening position.
+
+  An imported game is the same object as one watched move by move, which is
+  why none of the analysis needed writing twice.
+
+## Bug fixes
+
+* Evaluating a game no longer blocks the app. The scorer worked through every
+  unscored position in one pass - fine for the ply or two a live observation
+  adds, but an imported game arrives with all of it unscored, and forty-odd
+  positions at a quarter-second each would have frozen Shiny's single thread
+  for about eleven seconds. It now does a few per pass and comes back for the
+  rest, so the graph fills in while the app stays usable.
+
 # tanmai 1.2.0
 
 ## Renamed
@@ -56,6 +84,7 @@
 
 * Poppins is served from the site itself rather than from Google's CDN, so
   reading the docs makes no third-party request.
+
 # tanmai 1.0.3
 
 ## Bug fixes

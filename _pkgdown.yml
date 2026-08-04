@@ -191,6 +191,8 @@ reference:
       - move_quality
       - game_move_losses
       - game_turning_points
+      - game_from_pgn
+      - pgn_summary
       - format_loss
       - eval_graph_geometry
       - eval_graph_svg
