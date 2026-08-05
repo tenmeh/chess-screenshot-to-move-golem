@@ -1,3 +1,40 @@
+# tanmai 1.6.0
+
+## New features
+
+* **`read_video()` reads a whole game out of a recording of it.** Point it at a
+  screen recording, an animated GIF, or a folder of screenshots and it returns
+  the game that was played - the same object `read_pgn()` returns, so
+  `evaluate()`, `accuracy()` and the rest work on it unchanged.
+
+  This is the live tracker aimed at a file instead of a screen, and it works
+  for the same reason the live one does: a frame joins the game only when
+  exactly one legal sequence of moves explains it. A recording is *full* of
+  frames that must not be believed - a piece halfway through a slide, the board
+  mid-redraw, a piece picked up and put back - and each is refused either
+  because nothing legal explains it or because it repeats a position the game
+  has already been in. No video-specific cleverness is involved.
+
+  What happened to every frame comes back as a `ledger` attribute rather than
+  being hidden, so a recording that tracked badly says so.
+
+  GIFs and folders of stills need nothing beyond magick. Video formats need
+  ffmpeg, and its absence is reported plainly rather than assumed away.
+
+* Frames are compared before they are recognised, because recognition costs
+  orders of magnitude more and in a real recording most frames are the previous
+  frame. The threshold was measured rather than guessed: on a 32x32 thumbnail,
+  two renderings of one position differ by 0.0000 and so does a jpeg round trip
+  at quality 70, while the smallest real change in chess - a pawn advancing one
+  square - differs by 0.1176.
+
+## Bug fixes
+
+* A game with no moves comes back as an empty frame of the right shape instead
+  of failing. A recording where a board was never readable now says exactly
+  that, rather than returning a game of zero moves and leaving you to guess
+  why.
+
 # tanmai 1.5.0
 
 ## New features

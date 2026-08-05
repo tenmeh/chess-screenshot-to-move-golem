@@ -165,15 +165,45 @@ read_pgn <- function(x) {
   res <- game_from_pgn(chess_ctx(), x)
   if (!is.null(res$error)) stop("Could not read that PGN: ", res$error, call. = FALSE)
 
-  g <- res$game
+  game_to_frame(res$game, headers = res$headers)
+}
+
+#' Turn an internal game record into the public game data frame
+#'
+#' Shared by every adapter that produces a game, so a game watched frame by
+#' frame off a video and a game read out of a PGN file are the same object -
+#' which is what lets [evaluate()], [accuracy()] and the rest be written once.
+#'
+#' @param g An internal game record (see [game_new()]).
+#' @param headers Optional named character vector of PGN header tags.
+#' @return A [tanmai_game] data frame.
+#' @noRd
+game_to_frame <- function(g, headers = NULL) {
   n <- length(g$ucis)
+  if (!n) {
+    # A game with no moves is a legitimate answer - a recording where nothing
+    # was ever readable, say - and must come back as an empty frame of the
+    # right shape rather than as an error or a one-row frame of NA.
+    empty <- data.frame(
+      ply = integer(0), move_no = integer(0), side = character(0),
+      san = character(0), uci = character(0),
+      fen_before = character(0), fen_after = character(0),
+      cp = numeric(0), cp_loss = numeric(0),
+      best_uci = character(0), best_san = character(0),
+      class = factor(character(0), levels = MOVE_CLASSES),
+      human_p = numeric(0), stringsAsFactors = FALSE
+    )
+    return(structure(empty, headers = headers, class = c("tanmai_game", "data.frame")))
+  }
   # fens is always one longer than ucis: it carries the position *before* each
   # move plus the final one. Splitting it into before/after here means no
   # consumer has to remember that.
   out <- data.frame(
     ply = seq_len(n),
     move_no = (seq_len(n) + 1L) %/% 2L,
-    side = rep_len(c("w", "b"), n),
+    # A game that starts from a set-up position need not start with White to
+    # move, so this is derived from the position rather than assumed.
+    side = vapply(g$fens[seq_len(n)], fen_turn, character(1), USE.NAMES = FALSE),
     san = g$sans,
     uci = g$ucis,
     fen_before = g$fens[seq_len(n)],
@@ -186,13 +216,7 @@ read_pgn <- function(x) {
     human_p = NA_real_,
     stringsAsFactors = FALSE
   )
-  # A game that starts from a [FEN] header need not start with White to move,
-  # so the side column is derived from the position rather than assumed.
-  out$side <- vapply(out$fen_before, fen_turn, character(1), USE.NAMES = FALSE)
-  structure(out,
-    headers = res$headers,
-    class = c("tanmai_game", "data.frame")
-  )
+  structure(out, headers = headers, class = c("tanmai_game", "data.frame"))
 }
 
 #' Expand a FEN placement field into 64 symbols
