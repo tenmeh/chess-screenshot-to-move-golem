@@ -1,3 +1,35 @@
+# tanmai 1.4.0
+
+## New features
+
+* **A public API, for using the pipeline without the app.** `read_board()`,
+  `read_fen()` and `read_pgn()` are three ways into the same two data frames: a
+  one-row position, and a game with one row per ply carrying `san`, `uci`,
+  `fen_before`, `fen_after` and columns for an engine to fill in later.
+
+  Everything downstream reads those frames and never asks which adapter
+  produced them, which is what makes a fourth way in - a video - cheap to add
+  later. They are plain data frames, so `[`, dplyr and ggplot2 all work on them
+  without knowing anything about chess.
+
+* `plot()` methods for both, and `fen_to_symbols()` and `fen_complete()` for
+  the FEN handling the adapters needed anyway.
+
+## Bug fixes
+
+* **A FEN with the trailing fields trimmed is now accepted, as documented.**
+  The FEN box has claimed since 1.3.0 that four-field FENs work because
+  "chess.js fills in the fields people habitually leave off". chess.js does no
+  such thing - it validates strictly and rejects anything short of six fields -
+  so pasting what a chess site actually copies to the clipboard failed with
+  "must contain six space-delimited fields". `fen_complete()` now fills them in
+  before validation.
+
+  Castling is deliberately *not* inferred when a FEN omits it: such a FEN is
+  not claiming those rights, and granting them would silently change the
+  position. Recognition from a picture still infers castling, because a
+  picture has no such field to omit.
+
 # tanmai 1.3.0
 
 ## New features
@@ -18,6 +50,21 @@
   why none of the analysis needed writing twice.
 
 ## Bug fixes
+
+* **The app no longer starts up with an empty board.** A single `selectInput`
+  pulled in Shiny's selectize widget, which loads two scripts; when either 404s
+  the binding throws out of `initShiny()` *before* it opens the websocket, so
+  the app died quietly with a board that never drew. On Cloud Run that 404 is
+  routine - Shiny registers asset prefixes when it renders the UI, so an
+  instance that has not served a UI request yet does not have them.
+
+* **"Unrecognized piece set" no longer fires on screenshots that were read
+  perfectly.** The confidence gate used the worst-matching square, which
+  measures how precisely the board was cropped rather than whether the piece
+  set is known: a 280px board cropped one pixel short reads all 64 squares
+  correctly and scored 0.44, under the old 0.60 gate. It is now the typical
+  (median) square, which barely moves under the same offset and still collapses
+  for art the app has never seen.
 
 * Evaluating a game no longer blocks the app. The scorer worked through every
   unscored position in one pass - fine for the ply or two a live observation

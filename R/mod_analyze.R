@@ -200,9 +200,11 @@ mod_analyze_server <- function(id, chess_ctx) {
         fen_error("Paste a FEN first.")
         return()
       }
-      # chess.js fills in the fields people habitually leave off - castling,
-      # en passant, the clocks - so accept a four-field FEN rather than
-      # rejecting what every website copies to the clipboard.
+      # Fill in the fields people habitually leave off - castling, en passant,
+      # the clocks - so a four-field FEN is accepted rather than what every
+      # website copies to the clipboard being rejected. chess.js validates
+      # strictly and does *not* do this for us, which is why it is done here.
+      txt <- fen_complete(txt)
       check <- tryCatch(validate_fen(chess_ctx, txt), error = function(e) NULL)
       if (is.null(check) || !isTRUE(check$ok)) {
         fen_error(check$error %||% "That is not a position chess.js can read.")

@@ -18,3 +18,4 @@
 ^render\.yaml$
 ^renv$
 ^renv\.lock$
+^design$
