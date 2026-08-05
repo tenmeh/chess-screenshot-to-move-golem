@@ -1,3 +1,37 @@
+# tanmai 1.5.0
+
+## New features
+
+* **`evaluate()` fills in what `read_pgn()` leaves empty** - `cp`, `cp_loss`,
+  `best_uci`, `best_san` and `class` - for a whole game or a single position.
+  It costs one engine search per *position* rather than two per move, because
+  the engine reports its evaluation and its preferred move together and the
+  position after move i is the position before move i+1. A 45-ply game takes
+  about six seconds at the default thinking time.
+
+* **`accuracy()`** reports, per side: moves played, average centipawn loss,
+  counts of inaccuracies, mistakes and blunders, and an accuracy percentage.
+  The percentage uses Lichess's published formula, so it is comparable with
+  the figure they show rather than a private invention - it converts each
+  evaluation to an expected win percentage first, which is the point, because
+  half a pawn matters enormously in a level position and not at all when you
+  are already winning by a rook.
+
+* **`turning_points()`** returns the moves that cost the most, worst first.
+
+* **`has_engine()`** and **`position_status()`**. Reading a position or a game
+  never needs an engine; only judging one does, and it now says so plainly
+  instead of failing obscurely.
+
+## Bug fixes
+
+* A finished position is evaluated rather than left unknown. An engine reports
+  no principal variation for a position with no legal move, which used to leave
+  `cp` missing for the ply that *ended the game* - the most important row in the
+  table - and propagate that into `cp_loss` and `class`. Checkmate now scores
+  on the same scale the engine uses for its own mate scores, and a stalemate
+  scores zero.
+
 # tanmai 1.4.0
 
 ## New features
