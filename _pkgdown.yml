@@ -84,6 +84,7 @@ reference:
       - recognize_symbols_auto
       - template_matrix
       - build_fen
+      - fen_complete
       - grid_to_placement
       - infer_castling
       - resolve_orientation
