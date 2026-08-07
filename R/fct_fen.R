@@ -69,3 +69,31 @@ build_fen <- function(symbols, turn = "w", flip = FALSE) {
   fen <- paste(placement, turn, castling, "-", "0", "1")
   list(fen = fen, placement = placement)
 }
+
+#' Fill in the FEN fields people leave off
+#'
+#' Chess sites copy a FEN to the clipboard with the trailing fields trimmed -
+#' most often the two clocks, sometimes everything after the placement. chess.js
+#' validates strictly and rejects those outright, so they are completed here
+#' before validation rather than reported to the user as malformed.
+#'
+#' Defaults are the conservative ones: White to move, no castling rights, no en
+#' passant square, clocks at zero. Castling in particular is *not* inferred from
+#' where the kings and rooks sit - a FEN that omits it is not claiming those
+#' rights, and inventing them would silently change what the position means.
+#'
+#' @param fen A FEN string with one to six fields.
+#' @return A six-field FEN string.
+#' @examples
+#' fen_complete("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -")
+#' @export
+fen_complete <- function(fen) {
+  parts <- strsplit(trimws(fen), "[[:space:]]+")[[1]]
+  parts <- parts[nzchar(parts)]
+  if (!length(parts)) {
+    return(fen)
+  }
+  out <- c(parts[1], "w", "-", "-", "0", "1")
+  if (length(parts) > 1L) out[2:min(6L, length(parts))] <- parts[2:min(6L, length(parts))]
+  paste(out, collapse = " ")
+}

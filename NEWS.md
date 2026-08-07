@@ -1,3 +1,19 @@
+# tanmai 1.3.1
+
+## Bug fixes
+
+* **A FEN with the trailing fields trimmed is accepted, as the box has claimed
+  since 1.3.0.** The comment there said chess.js "fills in the fields people
+  habitually leave off". It does the opposite - it validates strictly and
+  rejects anything short of six fields - so pasting what Lichess and Chess.com
+  actually copy to the clipboard failed with "must contain six space-delimited
+  fields". `fen_complete()` now fills them in before validation.
+
+  Castling is deliberately not invented when the field is absent: such a FEN is
+  not claiming those rights, and granting them would silently change the
+  position. Recognition from a screenshot still infers castling, because a
+  picture has no such field to omit.
+
 # tanmai 1.3.0
 
 ## New features
