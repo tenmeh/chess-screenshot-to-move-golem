@@ -5,6 +5,20 @@
 # apt rather than a runtime download, and every piece-set template library is
 # built during the image build so a cold start is immediately ready.
 
+# One base image for both stages. This is not tidiness - it is the fix for a
+# real outage. lc0 used to be built on debian:bookworm-slim and the finished
+# binary copied into the Ubuntu-based runtime, which worked only for as long as
+# the two distributions happened to ship compatible shared libraries. When the
+# bookworm base was refreshed, lc0 kept building and passing its own smoke test
+# in the build stage, then silently failed to start in the runtime stage: the
+# image build died thirty seconds later on an unrelated-looking assertion deep
+# in an R script, with lc0's actual error swallowed by the subprocess.
+#
+# Building the binary against the very libraries it will run against removes
+# the entire class of problem, and sharing one ARG means the two stages cannot
+# drift apart again.
+ARG R_IMAGE=rocker/r-ver:4.6.1
+
 # ---------------------------------------------------------------------------
 # Stage 1: lc0, the engine behind the Blunder Radar's human model.
 #
@@ -13,7 +27,7 @@
 # Go engine - so it has to be built from source. Only the finished binary is
 # copied into the runtime image, leaving the ~1 GB of build toolchain behind.
 # ---------------------------------------------------------------------------
-FROM debian:bookworm-slim AS lc0build
+FROM ${R_IMAGE} AS lc0build
 
 ARG LC0_VERSION=v0.32.1
 
@@ -59,7 +73,7 @@ RUN chmod 0644 /weights/*.pb.gz
 # ---------------------------------------------------------------------------
 # Stage 2: the app.
 # ---------------------------------------------------------------------------
-FROM rocker/r-ver:4.6.1
+FROM ${R_IMAGE}
 
 # System libraries:
 #   libmagick++    - the magick package
@@ -94,6 +108,18 @@ ENV PATH="/usr/games:${PATH}"
 COPY --from=lc0build /src/build/lc0 /usr/local/bin/lc0
 COPY --from=lc0build /weights/ /opt/maia/
 ENV TANMAI_MAIA_DIR=/opt/maia
+
+# Prove the binary runs *here*, not merely where it was compiled. The build
+# stage already smoke-tests it, which is exactly why the previous failure was
+# so obscure: lc0 was fine in the stage that built it and unable to start in
+# the stage that used it. Without this line the first symptom is an R
+# assertion timing out thirty seconds later, with lc0's real complaint - a
+# missing or mismatched shared library - written to a stderr that processx
+# captures and discards. `ldd` is printed alongside so the next such failure
+# names the library instead of hiding it.
+RUN ldd /usr/local/bin/lc0 || true \
+    && lc0 --help > /dev/null \
+    && echo "lc0 runs in the runtime image"
 
 WORKDIR /srv/tanmai
 
